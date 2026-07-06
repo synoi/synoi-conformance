@@ -1,0 +1,115 @@
+[
+  {
+    "name": "cited_oracle_inputs: REJECT missing required field fetched_at",
+    "kind": "cited_oracle_input_entry",
+    "expect": "invalid",
+    "expected_error_kind": "schema_error",
+    "expected_error_detail": "cited_oracle_inputs[].fetched_at missing",
+    "entry": {
+      "subject_type": "weather",
+      "value_hash": "sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a",
+      "raw_value": { "observed_at": "2026-06-17T19:31:00.000Z", "temp_f": 78 },
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045"
+    },
+    "notes": [
+      "fetched_at is a REQUIRED field per spec Section 1.1.",
+      "Verifier MUST reject with schema_error naming the missing field."
+    ]
+  },
+  {
+    "name": "cited_oracle_inputs: REJECT value_hash mismatch (integrity check)",
+    "kind": "cited_oracle_input_entry",
+    "expect": "invalid",
+    "expected_error_kind": "integrity_error",
+    "expected_error_detail": "cited_oracle_inputs[].value_hash does not match sha256(JCS(raw_value))",
+    "entry": {
+      "subject_type": "weather",
+      "value_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "raw_value": { "observed_at": "2026-06-17T19:31:00.000Z", "temp_f": 78 },
+      "fetched_at": "2026-06-17T19:32:18.412Z",
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045"
+    },
+    "notes": [
+      "The correct value_hash for this raw_value is sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a.",
+      "All-zeros hash will never match a real sha256 output.",
+      "Verifier MUST recompute sha256(JCS(raw_value)) and reject on mismatch with integrity_error."
+    ]
+  },
+  {
+    "name": "cited_oracle_inputs: REJECT unknown extra key (strict mode)",
+    "kind": "cited_oracle_input_entry",
+    "expect": "invalid",
+    "expected_error_kind": "schema_error",
+    "expected_error_detail": "cited_oracle_inputs[] unknown key 'operator_note'",
+    "entry": {
+      "subject_type": "weather",
+      "value_hash": "sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a",
+      "raw_value": { "observed_at": "2026-06-17T19:31:00.000Z", "temp_f": 78 },
+      "fetched_at": "2026-06-17T19:32:18.412Z",
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045",
+      "operator_note": "this should fail strict mode"
+    },
+    "notes": [
+      "Spec Section 1.1: no additional properties at v1. Verifier MUST reject unknown keys.",
+      "Future extension goes through ADR_005 revision (task #37), not through extra keys."
+    ]
+  },
+  {
+    "name": "cited_oracle_inputs: REJECT null for optional field (null is forbidden)",
+    "kind": "cited_oracle_input_entry",
+    "expect": "invalid",
+    "expected_error_kind": "schema_error",
+    "expected_error_detail": "cited_oracle_inputs[].feed_claimed_at must be omitted, not null",
+    "entry": {
+      "subject_type": "time",
+      "value_hash": "sha256:139c09f573df8f5b888b4b2fb3b33eebaeee4dd0a43bf176b951e080bb94049c",
+      "raw_value": { "now_utc": "2026-06-17T19:38:22.000Z", "tz": "America/Denver" },
+      "fetched_at": "2026-06-17T19:38:22.000Z",
+      "source_url": "system:monotonic-clock",
+      "feed_claimed_at": null
+    },
+    "notes": [
+      "Spec Section 1.3 rule 3: null is forbidden for any optional field; the field must be omitted.",
+      "This avoids canonicalization ambiguity in JCS regarding null vs absent.",
+      "Verifier MUST reject with schema_error, not silently treat null as absent."
+    ]
+  },
+  {
+    "name": "cited_oracle_inputs: REJECT invalid subject_type value",
+    "kind": "cited_oracle_input_entry",
+    "expect": "invalid",
+    "expected_error_kind": "schema_error",
+    "expected_error_detail": "cited_oracle_inputs[].subject_type unknown value 'stock_price'",
+    "entry": {
+      "subject_type": "stock_price",
+      "value_hash": "sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a",
+      "raw_value": { "ticker": "AAPL", "price_usd": 213.45 },
+      "fetched_at": "2026-06-17T19:38:22.000Z",
+      "source_url": "https://api.example.com/quote/AAPL"
+    },
+    "notes": [
+      "subject_type is a closed enum in v1: weather | ofac | time | sms_hitl | webhook | cve.",
+      "New subject types require an ADR_005 revision (task #37), not a new value in existing receipts.",
+      "Verifier MUST reject with schema_error naming the unknown subject_type."
+    ]
+  },
+  {
+    "name": "cited_oracle_inputs: REJECT timestamp without milliseconds (RFC 3339 precision rule)",
+    "kind": "cited_oracle_input_entry",
+    "expect": "invalid",
+    "expected_error_kind": "schema_error",
+    "expected_error_detail": "cited_oracle_inputs[].fetched_at must be RFC 3339 UTC with millisecond precision and trailing Z",
+    "entry": {
+      "subject_type": "weather",
+      "value_hash": "sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a",
+      "raw_value": { "observed_at": "2026-06-17T19:31:00.000Z", "temp_f": 78 },
+      "fetched_at": "2026-06-17T19:32:18Z",
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045"
+    },
+    "notes": [
+      "Spec Section 1.3 rule 6: all timestamps are RFC 3339 UTC with millisecond precision and trailing Z.",
+      "2026-06-17T19:32:18Z is missing the .NNN milliseconds component.",
+      "+00:00 offset notation is also rejected; only trailing Z is accepted."
+    ]
+  }
+]

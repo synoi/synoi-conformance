@@ -1,0 +1,43 @@
+[
+  {
+    "name": "cited_oracle_inputs: weather entry with quantized fractional temp_f (ADR_019)",
+    "kind": "cited_oracle_input_entry",
+    "expect": "valid",
+    "__comment": [
+      "ADR_019 (forbid-floats + Wave-4 observation quantization) supersedes the",
+      "prior float form of this vector. canonicalize now REJECTS non-integer",
+      "numbers, so a raw float temp_f (75.2) can no longer reach value_hash. The",
+      "producer quantizes temp_f through the ONE shared quantizer",
+      "(state-drift/quantize) BEFORE canonicalize:",
+      "",
+      "  24.0 C -> 75.2 F  (Math.round((24.0 * 9/5 + 32) * 10) / 10 = 75.2)",
+      "  quantize temp_f -> { value_int: round(75.2 * 1000), scale: 1000, unit: 'millidegf' }",
+      "                  =  { value_int: 75200, scale: 1000, unit: 'millidegf' }",
+      "  dequantize: 75200 / 1000 = 75.2  (lossless round-trip)",
+      "",
+      "The preimage is now FLOAT-FREE, so sraid canonicalize and the conformance",
+      "local jcs() produce byte-identical output (cross-language conformant):",
+      "  {\"observed_at\":\"2026-06-17T19:31:00.000Z\",\"temp_f\":{\"scale\":1000,\"unit\":\"millidegf\",\"value_int\":75200}}",
+      "  sha256(that) = sha256:ea415d9dd4cf793da49108be6912e11e5fd839a3ed789a1fc4dab2800d887844",
+      "",
+      "This vector proves the quantized (ADR_019-conformant) fractional shape;",
+      "valid.json weather entry (temp_f: 78, an integer) still covers the integer",
+      "case unchanged, because integer readings pass through the quantizer as-is."
+    ],
+    "entry": {
+      "subject_type": "weather",
+      "value_hash": "sha256:ea415d9dd4cf793da49108be6912e11e5fd839a3ed789a1fc4dab2800d887844",
+      "raw_value": { "observed_at": "2026-06-17T19:31:00.000Z", "temp_f": { "value_int": 75200, "scale": 1000, "unit": "millidegf" } },
+      "fetched_at": "2026-06-17T19:32:18.412Z",
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045"
+    },
+    "notes": [
+      "raw_value.temp_f is the ADR_019 quantized shape { value_int, scale, unit }: proves fractional temps are float-free before hashing.",
+      "Source Celsius: 24.0 C. Fahrenheit: Math.round((24.0 * 9/5 + 32) * 10) / 10 = 75.2, quantized at scale 1000 (millidegf) to value_int 75200.",
+      "value_int, scale are integers and unit is a string, so canonicalize does not throw (ADR_019 forbid-floats); a raw float temp_f (75.2) would still be rejected.",
+      "sraid canonicalize and the suite local jcs() emit identical bytes for this preimage; value_hash = sha256(JCS(raw_value)).",
+      "Complement to valid.json weather entry (temp_f: 78) which covers the integer-valued case (passes through the quantizer unchanged).",
+      "feed_claimed_at is omitted; absence (not null) per spec Section 1.3 rule 3."
+    ]
+  }
+]

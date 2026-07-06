@@ -1,0 +1,257 @@
+[
+  {
+    "name": "int64_le_2p53_number",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 1,
+      "value_repr": "number",
+      "value": 9007199254740991
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "small int64 as JS number: JSON-safe; BigInt(x) stable on both write and read sides"
+  },
+  {
+    "name": "int64_bigint",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 1,
+      "value_repr": "bigint",
+      "value": "9007199254740993"
+    },
+    "json_roundtrip_lossy": true,
+    "expected_wrote_ok": false,
+    "expected_hash_match": false,
+    "loss_reason": "bigint: JSON.stringify(BigInt) throws TypeError at edge-store.ts:257; write path crashes"
+  },
+  {
+    "name": "uint64_bigint",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 10,
+      "value_repr": "bigint",
+      "value": "18446744073709551615"
+    },
+    "json_roundtrip_lossy": true,
+    "expected_wrote_ok": false,
+    "expected_hash_match": false,
+    "loss_reason": "bigint: JSON.stringify(BigInt) throws TypeError at edge-store.ts:257; write path crashes"
+  },
+  {
+    "name": "float64_positive",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 2,
+      "value_repr": "number",
+      "value": 3.14159
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "normal float: JSON round-trips exactly; IEEE-754 LE encoding stable"
+  },
+  {
+    "name": "float64_one_point_zero",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 2,
+      "value_repr": "number",
+      "value": 1
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "1.0 survives as 1 in JSON; encodeFloat64(1) is stable"
+  },
+  {
+    "name": "float64_neg_zero",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 2,
+      "value_repr": "neg_zero",
+      "value": null
+    },
+    "json_roundtrip_lossy": true,
+    "expected_wrote_ok": true,
+    "expected_hash_match": false,
+    "loss_reason": "JSON.stringify(-0) -> '0'; setFloat64(-0) sign bit differs from setFloat64(0); canonical hash diverges"
+  },
+  {
+    "name": "float64_nan",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 2,
+      "value_repr": "nan",
+      "value": null
+    },
+    "json_roundtrip_lossy": true,
+    "expected_wrote_ok": true,
+    "expected_hash_match": false,
+    "loss_reason": "JSON.stringify(NaN) -> 'null'; JSON.parse -> null; encodeFloat64(null) throws TypeError on read-side recompute"
+  },
+  {
+    "name": "string_ascii",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 3,
+      "value_repr": "string",
+      "value": "hello world"
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "ASCII string: JSON-safe; NFC normalization stable on both sides"
+  },
+  {
+    "name": "string_non_nfc",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 3,
+      "value_repr": "non_nfc",
+      "value": "é"
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "non-NFC input: encodeString NFC-normalizes on BOTH write and read sides; hash is normalization-invariant by construction"
+  },
+  {
+    "name": "bytes_uint8array",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 5,
+      "value_repr": "uint8array",
+      "value": [
+        12,
+        255,
+        0,
+        1
+      ]
+    },
+    "json_roundtrip_lossy": true,
+    "expected_wrote_ok": true,
+    "expected_hash_match": false,
+    "loss_reason": "Uint8Array: JSON.stringify -> index-keyed object {\"0\":12,...}; write does not throw; read-side encodeBytes rejects plain object; hash cannot be recomputed"
+  },
+  {
+    "name": "bytes_arraybuffer",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 5,
+      "value_repr": "arraybuffer",
+      "value": [
+        7,
+        8,
+        9
+      ]
+    },
+    "json_roundtrip_lossy": true,
+    "expected_wrote_ok": true,
+    "expected_hash_match": false,
+    "loss_reason": "ArrayBuffer: JSON.stringify -> '{}'; write does not throw; read-side encodeBytes rejects empty object; all data lost"
+  },
+  {
+    "name": "bytes_number_array",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 5,
+      "value_repr": "number_array",
+      "value": [
+        200,
+        100,
+        50
+      ]
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "number[] survives JSON round-trip; encodeBytes accepts number[]; binary encoding identical on both sides; hash stable"
+  },
+  {
+    "name": "bool_true",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 4,
+      "value_repr": "boolean",
+      "value": true
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "boolean: JSON-safe; encodeBool stable"
+  },
+  {
+    "name": "null_field",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 9,
+      "value_repr": "null",
+      "value": null
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "null: JSON-safe; encodeNull stable"
+  },
+  {
+    "name": "list_json_safe_scalars",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 6,
+      "value_repr": "list",
+      "value": [
+        [
+          1,
+          42
+        ],
+        [
+          3,
+          "x"
+        ]
+      ]
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "TypedValue tuples are arrays; JSON-safe scalar elements; hash stable"
+  },
+  {
+    "name": "map_json_safe_values",
+    "kind": "vault.canonical.roundtrip",
+    "field": {
+      "field_id": 1,
+      "type_tag": 7,
+      "value_repr": "map",
+      "value": {
+        "z": [
+          1,
+          1
+        ],
+        "a": [
+          3,
+          "v"
+        ]
+      }
+    },
+    "json_roundtrip_lossy": false,
+    "expected_wrote_ok": true,
+    "expected_hash_match": true,
+    "loss_reason": "plain object with JSON-safe TypedValues; encodeMap sorts keys; hash stable"
+  }
+]

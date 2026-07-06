@@ -1,0 +1,46 @@
+{
+  "status": "SHIPPED-AGAINST-TEST-KEYS",
+  "status_runner": "runner-SHIPPED when live-gate-round-trip binary AND tsx are present; NOT-EXECUTABLE-IN-RUNNER otherwise",
+  "status_caveat": "ENVIRONMENT-CONDITIONAL. These five LGRT vectors exercise the live gate-consult round-trip: the Rust binary spawns a real Node/Express gateway process, POSTs to /internal/gate/consult over real HTTP, and verifies the returned GateDecision under the carrier-extracted gate-signer key (NOT /internal/gate/pubkeys). As of synoi-conformance iteration-10 + synoi-gateway 9a78d03 the runner shells to the live-gate-round-trip binary when present and tsx (node_modules/.bin/tsx.cmd or tsx) is also present. Both were confirmed present and all 5 vectors PASS in this environment (2026-06-20). In any environment where the binary is absent or tsx is absent, every LGRT vector reports NOT-EXECUTABLE-IN-RUNNER; no fake pass is ever emitted. SCOPE: TEST KEYS ONLY. The fixture uses the same fixed-seed TEST keypairs as synoi-carrier/src/lib.rs test_fixture (IMAGE_SIGNING_ED_SEED=[1..1], CARRIER_SIGNING_ED_SEED=[3..3], GATE_SIGNER_ED_SEED=[5..5]). No production KMS keys. No persisted HWM. The live gateway instance is ephemeral (exits when the Rust binary drops stdin). PAPER: GV-1..GV-19 genesis-loader sequence, production KMS, persisted HWM, end-to-end hybrid (verify-router still PARTIAL). NOT CLAIMED: end-to-end production path. LGRT-5 tests the cache-layer TTL computation (local Rust, not a gateway-enforced expiry path). Per CLAIMS_DISCIPLINE the live round-trip closes the 'no live HTTP vector' gap documented in the iter-10 mandate. Tagged 2026-06-20 by Verifier (iteration-10).",
+  "claim_ids": [
+    "ADR_011_Section_10_live_round_trip",
+    "ADR_005_Section_5_1_bound_tuple_rebind"
+  ],
+  "toolchain_requirements": {
+    "binary": "synoi-gateway/runtime/b1-harness/target/debug/live-gate-round-trip[.exe]",
+    "tsx": "synoi-gateway/node_modules/.bin/tsx.cmd (Windows) or tsx (Unix)",
+    "note": "binary spawns Node/tsx internally; runner only needs the Rust binary present"
+  },
+  "vectors": [
+    {
+      "name": "lgrt-1-accept-carrier-extracted-key-live-http",
+      "tag": "LGRT-1",
+      "expected": "PASS",
+      "description": "Happy path: real HTTP POST to /internal/gate/consult. Gateway signs GateDecision with TEST gate-signer key. Rust verifies under carrier-extracted key (NOT /internal/gate/pubkeys). ADR_005 Sec 5.1 bound-tuple rebind passes. Expected: ACCEPT; decision=allow; attestation verifies."
+    },
+    {
+      "name": "lgrt-2-untrusted-signer-wrong-key-rejected",
+      "tag": "LGRT-2",
+      "expected": "PASS",
+      "description": "Real GateDecision from gateway, but verified under a wrong key (Ed25519 bytes = 0xFF * 32). Must reject. Expected: UntrustedSigner (sig verify fails under wrong key)."
+    },
+    {
+      "name": "lgrt-3-stripped-ml-dsa-rejected",
+      "tag": "LGRT-3",
+      "expected": "PASS",
+      "description": "Real GateDecision from gateway, ml-dsa-65 signature removed from attestation envelope. Must reject: AND-enforce requires both. Expected: UntrustedSigner(MissingMlDsa65)."
+    },
+    {
+      "name": "lgrt-4-tuple-mismatch-panel-id-rejected",
+      "tag": "LGRT-4",
+      "expected": "PASS",
+      "description": "Real GateDecision for live-lgrt4-panel, but rebind check uses ATTACKER-PANEL. ADR_005 Sec 5.1 must catch the mismatch. Expected: UntrustedSigner(tuple-mismatch)."
+    },
+    {
+      "name": "lgrt-5-stale-cache-ttl-zero",
+      "tag": "LGRT-5",
+      "expected": "PASS",
+      "description": "Cache-layer TTL computation: fresh GateDecision (expires_at=now+60s) has TTL>0 (cacheable); a past expires_at (epoch 0) has TTL=0 (stale, not cached). Verified via local Rust computation; the gateway always returns expires_at=now+60s. NOTE: this vector tests the cache-layer contract, not a gateway-enforced expiry path."
+    }
+  ]
+}

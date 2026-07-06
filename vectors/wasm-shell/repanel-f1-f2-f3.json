@@ -1,0 +1,187 @@
+{
+  "protocol": "wasm-shell",
+  "version": "1",
+  "status": "PARTIAL-AGAINST-TEST-KEYS",
+  "status_runner": "NOT-EXECUTABLE-IN-RUNNER (tsx-backed in synoi-runtime-wt on branch wasm-runtime). GREEN 2026-06-22 (post-re-panel F1/F2/F3 fixes): 4/4 + 6/6 + 11/11 + 34/34 passed, 0 failed.",
+  "status_caveat": "All three re-panel findings (F1 SEVERE, F2 MEDIUM, F3 MEDIUM) are built and tested with test keys on the wasm-runtime branch. Production keys PAPER + ceremony-gated. Tags: PARTIAL-against-test-keys per per ADR_015 Section 6 honest-tag table. The re-panel decides panel-clearance; NOT self-cleared.",
+  "task": "Re-panel F1/F2/F3 fixes on the /local + engine grant authorization path (2026-06-22)",
+  "adr": "ADR_015 Section 3.5 (operator enrollment enforcement on the grant path)",
+  "authored": "2026-06-22",
+  "last_run": "2026-06-22",
+  "run_evidence": [
+    {
+      "command": "npx tsx test/oa-grant-legacy-bypass.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "4 passed, 0 failed",
+      "date": "2026-06-22",
+      "note": "F1: grant-path rejects non-OID operator_oid (InvalidOperatorOidFormatError) AND unenrolled OID-format operator (InvalidOperatorSignatureError). RED before fix; GREEN after."
+    },
+    {
+      "command": "npx tsx test/repanel-f2-prod-interlock.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "6 passed, 0 failed",
+      "date": "2026-06-22",
+      "note": "F2: NODE_ENV=production hard-blocks _testClearEnrollment, _testEnrollOperatorForTest, and capbundle/1 sentinel bypass even with SYNOI_ALLOW_EPHEMERAL_KEYS=true."
+    },
+    {
+      "command": "npx tsx test/repanel-f3-nonce-leak.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "11 passed, 0 failed",
+      "date": "2026-06-22",
+      "note": "F3: challenge_nonce removed from GET /local/pending listing; still present in POST /local/gate 201 response (client flow intact)."
+    },
+    {
+      "command": "npx tsx test/s1-grant-update.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "34 passed, 0 failed",
+      "date": "2026-06-22",
+      "note": "Migrated from operator:steve (legacy non-OID) to enrolled oid-<64hex> operators. Adds test vectors for non-OID rejection (InvalidOperatorOidFormatError) and HTTP 400 at the router edge."
+    }
+  ],
+
+  "description": "Conformance vectors for the re-panel security findings F1 (SEVERE), F2 (MEDIUM), F3 (MEDIUM) on the /local + engine grant authorization path. All three gaps were identified in the Security and Adversary re-panel dated 2026-06-22. RED-before / GREEN-after for each. TEST KEYS ONLY.",
+
+  "vectors": [
+    {
+      "name": "f1-grant-path-rejects-non-oid-operator",
+      "tag": "REPANEL-F1-NON-OID-REJECT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions, test/oa-grant-legacy-bypass.test.ts)",
+      "expected": "REJECT",
+      "failing_before": "updateGrantPredicate() succeeded: attack SUCCEEDED, grant was updated by unenrolled attacker with non-OID operator_oid='operator:steve'. The regex gate `if (/^oid-[0-9a-f]{64}$/.test(input.operator_oid))` let any non-OID string skip assertEnrolledOperator entirely, falling through to bare verifyOperatorSignature (which only checks the sig against the caller-supplied pubkey). 0 passed, 1 failed.",
+      "description": "F1 (SEVERE): Attack A on the engine grant path via the legacy operator_oid escape. updateGrantPredicate in src/agp/engine.ts gated assertEnrolledOperator behind a regex match on operator_oid format. An attacker with a fresh keypair and a non-OID operator_oid string (e.g. 'operator:steve') could update ANY named grant with no enrollment check. Fix: reject any operator_oid not in oid-<64hex> format with InvalidOperatorOidFormatError BEFORE the enrollment check. No legacy bypass on an authorization path.",
+      "fix": {
+        "file": "src/agp/engine.ts",
+        "change": "Removed regex-gated fallthrough. Added pre-check: if (!/^oid-[0-9a-f]{64}$/.test(input.operator_oid)) throw new InvalidOperatorOidFormatError(...). assertEnrolledOperator is now UNCONDITIONAL on the authorization path.",
+        "new_error_class": "InvalidOperatorOidFormatError (exported from engine.ts)"
+      },
+      "defense_in_depth": {
+        "file": "src/agp/router.ts (POST /agp/grants/:oid/update)",
+        "change": "Added OID-format check at the router edge before calling the engine. Non-OID operator_oid -> 400 { type: 'invalid_operator_oid_format' } before any engine processing."
+      },
+      "observables": [
+        "updateGrantPredicate({ operator_oid: 'operator:steve', ... }) throws InvalidOperatorOidFormatError",
+        "unenrolled attacker with non-OID operator_oid CANNOT update any grant",
+        "POST /agp/grants/:oid/update with non-OID operator_oid -> 400, type='invalid_operator_oid_format'"
+      ]
+    },
+    {
+      "name": "f1-grant-path-rejects-unenrolled-oid-format",
+      "tag": "REPANEL-F1-UNENROLLED-REJECT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions, test/oa-grant-legacy-bypass.test.ts)",
+      "expected": "REJECT",
+      "failing_before": "If an attacker used a valid oid-<64hex> format but was not enrolled, the enrollment check ran but the behavior depended on the prior regex gate being bypassed for non-OID strings. Post-fix this is now an unconditional check.",
+      "description": "F1 companion: even a well-formed oid-<64hex> operator_oid must be enrolled. The enrollment check in updateGrantPredicate is now UNCONDITIONAL (ADR_015 Section 3.5). An OID-format but unenrolled operator gets InvalidOperatorSignatureError wrapping OperatorNotEnrolledError.",
+      "fix": "Same as f1-grant-path-rejects-non-oid-operator: assertEnrolledOperator is now unconditional, not gated by the regex.",
+      "observables": [
+        "updateGrantPredicate with valid OID format but unenrolled operator throws InvalidOperatorSignatureError",
+        "error contains enrollment-related text (not_enrolled / enrollment_missing)"
+      ]
+    },
+    {
+      "name": "f2-prod-blocks-testclearenrollment",
+      "tag": "REPANEL-F2-PROD-CLEAR",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions, test/repanel-f2-prod-interlock.test.ts)",
+      "expected": "REJECT",
+      "failing_before": "NODE_ENV=production with SYNOI_ALLOW_EPHEMERAL_KEYS=true: _testClearEnrollment() executed without throwing. The only guard was SYNOI_ALLOW_EPHEMERAL_KEYS (no NODE_ENV check). A prod deploy with the env flag set could wipe the enrollment record.",
+      "description": "F2 (MEDIUM): The test escape hatches were gated on SYNOI_ALLOW_EPHEMERAL_KEYS alone. Apply the same NODE_ENV=production hard-stop pattern as __setSigningBundleForTest in verify-router.ts:179. _testClearEnrollment() now throws when NODE_ENV==='production' BEFORE checking SYNOI_ALLOW_EPHEMERAL_KEYS.",
+      "fix": {
+        "file": "src/agp/operator-enrollment.ts (_testClearEnrollment)",
+        "change": "Added: if (process.env['NODE_ENV'] === 'production') { throw new Error('[operator-enrollment] _testClearEnrollment is TEST-ONLY...'); }"
+      },
+      "observables": [
+        "_testClearEnrollment() throws under NODE_ENV=production (regardless of SYNOI_ALLOW_EPHEMERAL_KEYS)",
+        "error message mentions 'production'"
+      ]
+    },
+    {
+      "name": "f2-prod-blocks-testenrolloperatorfortest",
+      "tag": "REPANEL-F2-PROD-ENROLL",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions, test/repanel-f2-prod-interlock.test.ts)",
+      "expected": "REJECT",
+      "failing_before": "NODE_ENV=production with SYNOI_ALLOW_EPHEMERAL_KEYS=true: _testEnrollOperatorForTest() executed without throwing, allowing test-key enrollment in a production process.",
+      "description": "F2: Same NODE_ENV hard-stop for _testEnrollOperatorForTest().",
+      "fix": {
+        "file": "src/agp/operator-enrollment.ts (_testEnrollOperatorForTest)",
+        "change": "Added: if (process.env['NODE_ENV'] === 'production') { throw new Error('[operator-enrollment] _testEnrollOperatorForTest is TEST-ONLY...'); }"
+      },
+      "observables": [
+        "_testEnrollOperatorForTest() throws under NODE_ENV=production",
+        "error message mentions 'production'"
+      ]
+    },
+    {
+      "name": "f2-prod-blocks-capbundle-sentinel",
+      "tag": "REPANEL-F2-PROD-SENTINEL",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions, test/repanel-f2-prod-interlock.test.ts)",
+      "expected": "REJECT",
+      "failing_before": "NODE_ENV=production with SYNOI_ALLOW_EPHEMERAL_KEYS=true: POST /local/gate with bundle_oid='capbundle/1' returned 201 (bypass active). The isTestMode check only looked at SYNOI_ALLOW_EPHEMERAL_KEYS, not NODE_ENV.",
+      "description": "F2: The capbundle/1 sentinel grant-check bypass at src/agp/local-ingest-router.ts requires both SYNOI_ALLOW_EPHEMERAL_KEYS=true AND NODE_ENV!=='production'. A production deploy with the flag set must not reopen this bypass.",
+      "fix": {
+        "file": "src/agp/local-ingest-router.ts (POST /local/gate, isTestMode check)",
+        "change": "isTestMode = process.env['SYNOI_ALLOW_EPHEMERAL_KEYS'] === 'true' && process.env['NODE_ENV'] !== 'production'"
+      },
+      "observables": [
+        "POST /local/gate with bundle_oid='capbundle/1' under NODE_ENV=production returns 403, type='bundle_unknown'",
+        "SYNOI_ALLOW_EPHEMERAL_KEYS=true does NOT override the production block"
+      ]
+    },
+    {
+      "name": "f3-nonce-absent-from-pending-listing",
+      "tag": "REPANEL-F3-NONCE-ABSENT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (5 assertions, test/repanel-f3-nonce-leak.test.ts)",
+      "expected": "ABSENT-FROM-LISTING",
+      "failing_before": "GET /local/pending returned challenge_nonce for every pending entry. Any loopback process that polled the listing could collect live nonces (nonce-farming). challenge_nonce was present in both POST /local/gate 201 response AND GET /local/pending listing.",
+      "description": "F3 (MEDIUM): challenge_nonce is removed from the GET /local/pending listing. The client already received it in the POST /local/gate 201 response; it does not need to re-read it from the listing. Removing it from the listing closes the nonce-farming attack surface.",
+      "fix": {
+        "file": "src/agp/local-ingest-router.ts (GET /local/pending)",
+        "change": "Removed challenge_nonce from the .map() projection. Other fields (pending_oid, bundle_oid, principal_oid, panel_id, action_kind, originating_receipt_oid, ingested_at, status) are unchanged."
+      },
+      "observables": [
+        "GET /local/pending entries do NOT contain the key 'challenge_nonce'",
+        "pending entries still contain: pending_oid, bundle_oid, action_kind, status, ingested_at"
+      ]
+    },
+    {
+      "name": "f3-nonce-present-in-gate-response",
+      "tag": "REPANEL-F3-NONCE-GATE",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (3 assertions, test/repanel-f3-nonce-leak.test.ts)",
+      "expected": "PRESENT-IN-GATE-RESPONSE",
+      "description": "F3 companion: POST /local/gate 201 response STILL returns challenge_nonce. The client flow is intact. The nonce is only removed from the polling endpoint, not from the single-issuance endpoint.",
+      "observables": [
+        "POST /local/gate returns 201",
+        "201 response contains 'challenge_nonce' key",
+        "challenge_nonce is a non-empty string"
+      ]
+    }
+  ],
+
+  "callers_migrated": [
+    {
+      "file": "test/s1-grant-update.test.ts",
+      "change": "Migrated from operator_oid='operator:steve' (legacy non-OID string) to enrolled oid-<64hex> operators via _testEnrollOperatorForTest. All 34 assertions pass. Added 2 new vectors: non-OID operator_oid throws InvalidOperatorOidFormatError (engine) and returns 400 type=invalid_operator_oid_format (HTTP). initTestSigningKeys() added to support enrollment DSSE signing. _testEnrollOperatorForTest updated to append to existing enrollment record (not replace) so multi-operator tests remain stable."
+    },
+    {
+      "file": "src/agp/demo-router.ts",
+      "change": "POST /v1/demo/session now calls enrollOperator(operator_pubkey_hex, 'demo-session') after the OID-binding check, so the demo operator is enrolled before updateGrantPredicate is called. 'already enrolled' error treated as success (idempotent per-session). demo-revoke.test.ts: 11 passed, 0 failed (was 4 failed before fix)."
+    }
+  ],
+
+  "security_controls_summary": {
+    "f1_grant_path_oid_format": "BUILT-AND-TESTED. updateGrantPredicate rejects any operator_oid not in oid-<64hex> format with InvalidOperatorOidFormatError BEFORE enrollment. Defense-in-depth: router also rejects at 400 before calling engine. PARTIAL-against-test-keys.",
+    "f1_grant_path_enrollment_unconditional": "BUILT-AND-TESTED. assertEnrolledOperator is now unconditional on the grant-update authorization path. No regex gate. verifyOperatorSignature retained as an ADDITIONAL check AFTER enrollment passes. PARTIAL-against-test-keys.",
+    "f2_node_env_production_hard_stop": "BUILT-AND-TESTED. _testClearEnrollment, _testEnrollOperatorForTest, and the capbundle/1 sentinel bypass all hard-throw/reject when NODE_ENV==='production', regardless of SYNOI_ALLOW_EPHEMERAL_KEYS. Same pattern as verify-router.ts __setSigningBundleForTest. PARTIAL-against-test-keys.",
+    "f3_nonce_not_in_listing": "BUILT-AND-TESTED. challenge_nonce removed from GET /local/pending listing. Still returned in POST /local/gate 201 response. Client flow intact. PARTIAL-against-test-keys.",
+    "panel_clearance": "NOT SELF-CLEARED. All three findings are built and pass reproduce-first test vectors. The re-panel decides clearance."
+  }
+}

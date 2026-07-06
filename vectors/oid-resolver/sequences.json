@@ -1,0 +1,175 @@
+[
+  {
+    "name": "health → 200 + ok=true",
+    "steps": [
+      {
+        "op": "GET",
+        "path": "/v1/health",
+        "auth": "none",
+        "expected_status": 200,
+        "expected_response": { "ok": true }
+      }
+    ]
+  },
+  {
+    "name": "resolve unknown OID → 200 with revoked:false + empty locations",
+    "steps": [
+      {
+        "op": "GET",
+        "path": "/v1/resolve/sha256:0000000000000000000000000000000000000000000000000000000000000abc",
+        "auth": "none",
+        "expected_status": 200,
+        "expected_response": {
+          "revoked": false,
+          "canonical_locations": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "announce without auth → 401",
+    "steps": [
+      {
+        "op": "POST",
+        "path": "/v1/announce",
+        "auth": "none",
+        "body": {
+          "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+          "location_url": "https://example.test/objects/abc"
+        },
+        "expected_status": 401
+      }
+    ]
+  },
+  {
+    "name": "announce with wrong auth → 401",
+    "steps": [
+      {
+        "op": "POST",
+        "path": "/v1/announce",
+        "auth": "Bearer wrong-token",
+        "body": {
+          "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+          "location_url": "https://example.test/objects/xyz"
+        },
+        "expected_status": 401
+      }
+    ]
+  },
+  {
+    "name": "announce + resolve round-trip surfaces location",
+    "steps": [
+      {
+        "op": "POST",
+        "path": "/v1/announce",
+        "auth": "default",
+        "body": {
+          "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+          "location_url": "https://example.test/objects/3"
+        },
+        "expected_status": 200,
+        "expected_response": { "ok": true }
+      },
+      {
+        "op": "GET",
+        "path": "/v1/resolve/sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "auth": "none",
+        "expected_status": 200,
+        "assert": [
+          { "path": "revoked", "equals": false },
+          { "path": "oid",     "equals": "sha256:0000000000000000000000000000000000000000000000000000000000000003" }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "batch resolve mixes known + unknown",
+    "steps": [
+      {
+        "op": "POST",
+        "path": "/v1/announce",
+        "auth": "default",
+        "body": {
+          "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+          "location_url": "https://example.test/objects/4"
+        },
+        "expected_status": 200
+      },
+      {
+        "op": "POST",
+        "path": "/v1/resolve/batch",
+        "auth": "none",
+        "body": {
+          "oids": [
+            "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+            "sha256:00000000000000000000000000000000000000000000000000000000ffffffff"
+          ]
+        },
+        "expected_status": 200,
+        "assert": [
+          { "path": "results",       "truthy": true }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "revocations listing → 200 with revocations array",
+    "steps": [
+      {
+        "op": "GET",
+        "path": "/v1/revocations",
+        "auth": "none",
+        "expected_status": 200,
+        "expected_response": {
+          "count":       "<any>",
+          "revocations": "<any>"
+        }
+      }
+    ]
+  },
+  {
+    "name": "revocations with limit query parameter → 200",
+    "steps": [
+      {
+        "op": "GET",
+        "path": "/v1/revocations?limit=10",
+        "auth": "none",
+        "expected_status": 200,
+        "expected_response": { "count": "<any>", "revocations": "<any>" }
+      }
+    ]
+  },
+  {
+    "name": "revocations bad target_kind → 400",
+    "steps": [
+      {
+        "op": "GET",
+        "path": "/v1/revocations?target_kind=nonsense",
+        "auth": "none",
+        "expected_status": 400
+      }
+    ]
+  },
+  {
+    "name": "revocations target_kind=decision_receipt → 400 (decision_receipt excluded from revocation scope)",
+    "steps": [
+      {
+        "op": "GET",
+        "path": "/v1/revocations?target_kind=decision_receipt",
+        "auth": "none",
+        "expected_status": 400
+      }
+    ]
+  },
+  {
+    "name": "resolve with malformed OID → 400",
+    "steps": [
+      {
+        "op": "GET",
+        "path": "/v1/resolve/not-a-real-oid",
+        "auth": "none",
+        "expected_status": 400
+      }
+    ]
+  }
+]

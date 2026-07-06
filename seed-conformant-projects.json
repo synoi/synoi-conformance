@@ -1,0 +1,135 @@
+{
+  "schema": "synoi.conformance.seed-list/v1",
+  "generated_at": "2026-07-06T01:45:53.073Z",
+  "conformant": [
+    {
+      "project": "SynOI reference stack (@synoi/sraid + @synoi/gap + @synoi/oid-resolver)",
+      "repo_url": "https://github.com/synoi/synoi-conformance",
+      "tier": 2,
+      "qualifying_protocols": [
+        "sraid",
+        "gap"
+      ],
+      "vectors_passed": 118,
+      "vectors_total": 137,
+      "verified_at": "2026-07-06T01:45:53.072Z"
+    }
+  ],
+  "pending": [
+    {
+      "project": "synoi-mcp-shim-aws-iam",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-aws-iam",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-circleci",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-circleci",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-crowdstrike",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-crowdstrike",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-datadog",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-datadog",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-email",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-email",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-filesystem",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-filesystem",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-github",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-github",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-github-octokit",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-github-octokit",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-gitlab",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-gitlab",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-jira",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-jira",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-kubernetes",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-kubernetes",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-launchdarkly",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-launchdarkly",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-linear",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-linear",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-notion",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-notion",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-okta",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-okta",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-postgres",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-postgres",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-salesforce",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-salesforce",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-sentry",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-sentry",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-servicenow",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-servicenow",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-slack",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-slack",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-slack-webapi",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-slack-webapi",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-stripe",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-stripe",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    },
+    {
+      "project": "synoi-mcp-shim-terraform",
+      "repo_url": "https://github.com/synoi/synoi-mcp-shim-terraform",
+      "reason": "PENDING: no conformance manifest committed yet (see CONTRIBUTING for how to earn a badge)"
+    }
+  ]
+}

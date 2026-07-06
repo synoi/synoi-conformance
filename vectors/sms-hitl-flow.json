@@ -1,0 +1,295 @@
+[
+  {
+    "name": "sms_hitl_flow: outbound SMS sent on HITL request; stored in vault",
+    "kind": "sms_hitl_flow_outbound",
+    "expect": "valid",
+    "notes": [
+      "C6 / S2.9.",
+      "When a HITL decision is requested the adapter MUST:",
+      "  (a) send an outbound SMS to the operator phone via AWS End User Messaging",
+      "      (PinpointSMSVoiceV2 SendTextMessage),",
+      "  (b) store the outbound message ID and body in the tenant vault under",
+      "      a receipt-scoped key so the audit trail is complete.",
+      "Transport pivot: Twilio -> AWS End User Messaging (S2.1 Sprint 2).",
+      "Outbound message IDs are AWS-assigned UUIDs (not SM-prefixed Twilio SIDs).",
+      "Sandbox note: without 10DLC registration AWS delivers only to VERIFIED",
+      "  destination numbers registered in the AWS console. Joshua and Steve must",
+      "  be added as verified destinations before the demo.",
+      "Falsifiability: remove the vault.put call after the AWS outbound send.",
+      "  The FeedResult.stored_in_vault field will be absent or false and this",
+      "  vector fails at the expected_outbound_shape assertion.",
+      "Spec reference: S2.1 SMS-HITL adapter, vault storage contract."
+    ],
+    "phone_number": "+18015550100",
+    "mock_aws_message_id": "aaaabbbb-0000-0000-0000-outbound0001",
+    "expected_outbound_shape": {
+      "outbound_sid_format": "uuid-or-aws-msg-fallback",
+      "stored_in_vault": true,
+      "vault_key_contains_sid": true,
+      "transport": "aws_end_user_messaging"
+    }
+  },
+  {
+    "name": "sms_hitl_flow: inbound YES via SNS notification triggers D1 -> E1 replay chain",
+    "kind": "sms_hitl_flow_inbound",
+    "expect": "valid",
+    "notes": [
+      "C6 / S2.9.",
+      "An AWS SNS Notification arriving at POST /v1/agp/hitl/sns/inbound with",
+      "messageBody='YES' must:",
+      "  (a) validate the TopicArn against AWS_SNS_INBOUND_TOPIC_ARN env var,",
+      "  (b) resolve the pending HITL request (identified by originationNumber",
+      "      matching the outbound phone record),",
+      "  (c) emit a D1 denial receipt (status=denied, detail='HITL pending'),",
+      "  (d) then immediately emit an E1 execution receipt (status=ok, replayed_after=D1.oid).",
+      "Signal OID uses 'aws-sms:<inboundMessageId>' prefix (was 'twilio:' before pivot).",
+      "Falsifiability: strip the replayed_after field from E1 body. The assertion",
+      "  e1_replayed_after_equals_d1_oid fails with field-absent error.",
+      "Spec reference: S2.3 replay-chain contract; S2.1 HITL inbound handler."
+    ],
+    "inbound_body": "YES",
+    "inbound_from": "+18015550100",
+    "inbound_to": "+12125550001",
+    "mock_sns_topic_arn_valid": true,
+    "mock_outbound_message_id": "aaaabbbb-0000-0000-0000-outbound0001",
+    "assertions": [
+      {
+        "field": "topic_arn_verified",
+        "op": "eq",
+        "value": true,
+        "note": "TopicArn must match AWS_SNS_INBOUND_TOPIC_ARN before any action is taken"
+      },
+      {
+        "field": "d1.body.status",
+        "op": "eq",
+        "value": "denied",
+        "note": "D1 is always a denial receipt marking the HITL pending state"
+      },
+      {
+        "field": "d1.body.detail",
+        "op": "contains",
+        "value": "HITL pending",
+        "note": "denial detail must describe the HITL pending state"
+      },
+      {
+        "field": "e1.body.status",
+        "op": "eq",
+        "value": "ok",
+        "note": "E1 is the execution receipt after HITL approval"
+      },
+      {
+        "field": "e1.body.replayed_after",
+        "op": "eq",
+        "value": "d1.oid",
+        "note": "E1.body.replayed_after must equal D1.oid to anchor the replay chain"
+      },
+      {
+        "field": "e1.prev",
+        "op": "eq",
+        "value": "d1.oid",
+        "note": "E1.prev (Merkle parent) must also equal D1.oid"
+      }
+    ]
+  },
+  {
+    "name": "sms_hitl_flow: inbound NO via SNS notification emits denial receipt with reason=hitl_denied",
+    "kind": "sms_hitl_flow_inbound",
+    "expect": "valid",
+    "notes": [
+      "C6 / S2.9.",
+      "An SNS Notification with messageBody='NO' (case-insensitive) must:",
+      "emit a denial receipt with decision=deny and detail containing 'hitl_denied'.",
+      "No E1 execution receipt is emitted. The provisional block remains.",
+      "Falsifiability: change the gate to emit an allow receipt on 'NO' body.",
+      "  The assertion denial_receipt_emitted fails.",
+      "Spec reference: S2.1 HITL inbound handler; GAP denial receipt contract."
+    ],
+    "inbound_body": "NO",
+    "inbound_from": "+18015550100",
+    "inbound_to": "+12125550001",
+    "mock_sns_topic_arn_valid": true,
+    "mock_outbound_message_id": "aaaabbbb-0000-0000-0000-outbound0001",
+    "assertions": [
+      {
+        "field": "topic_arn_verified",
+        "op": "eq",
+        "value": true,
+        "note": "TopicArn verified even on NO path"
+      },
+      {
+        "field": "denial_receipt_emitted",
+        "op": "eq",
+        "value": true,
+        "note": "A denial receipt must be emitted on NO"
+      },
+      {
+        "field": "denial_receipt.body.decision",
+        "op": "eq",
+        "value": "deny",
+        "note": "decision must be 'deny'"
+      },
+      {
+        "field": "denial_receipt.body.detail",
+        "op": "contains",
+        "value": "hitl_denied",
+        "note": "detail must contain 'hitl_denied' so the verifier can distinguish from other denial reasons"
+      },
+      {
+        "field": "e1_emitted",
+        "op": "eq",
+        "value": false,
+        "note": "No E1 execution receipt on NO"
+      }
+    ]
+  },
+  {
+    "name": "sms_hitl_flow: unknown SNS topic ARN on inbound is rejected",
+    "kind": "sms_hitl_flow_inbound",
+    "expect": "invalid",
+    "expected_error_kind": "unknown_sns_topic",
+    "expected_error_detail": "TopicArn does not match AWS_SNS_INBOUND_TOPIC_ARN",
+    "notes": [
+      "C6 / S2.9.",
+      "An SNS Notification POST with a TopicArn that does not match",
+      "AWS_SNS_INBOUND_TOPIC_ARN must be rejected immediately with HTTP 403.",
+      "No receipt is emitted; no vault writes occur for the spoofed inbound.",
+      "Bypass via SYNOI_SMS_SKIP_SIG=1 for dev/test.",
+      "Falsifiability: skip the topic ARN check. The gate accepts notifications",
+      "  from arbitrary SNS topics and emits receipts for unauthenticated events.",
+      "  The assertion error_kind=unknown_sns_topic fails.",
+      "Spec reference: S2.1 SNS topic validation contract."
+    ],
+    "inbound_body": "YES",
+    "inbound_from": "+18015550100",
+    "inbound_to": "+12125550001",
+    "mock_sns_topic_arn_valid": false,
+    "mock_outbound_message_id": "aaaabbbb-0000-0000-0000-outbound0001",
+    "assertions": [
+      {
+        "field": "error_kind",
+        "op": "eq",
+        "value": "unknown_sns_topic",
+        "note": "Gate must return unknown_sns_topic for unrecognized TopicArn"
+      },
+      {
+        "field": "receipt_emitted",
+        "op": "eq",
+        "value": false,
+        "note": "No receipt is emitted for an unrecognized topic"
+      }
+    ]
+  },
+  {
+    "name": "sms_hitl_flow: expired window (>5 min after D1) auto-lifts and rejects late inbound",
+    "kind": "sms_hitl_flow_window",
+    "expect": "invalid",
+    "expected_error_kind": "hitl_window_expired",
+    "expected_error_detail": "HITL reply window expired (>5 min since D1); inbound rejected",
+    "notes": [
+      "C6 / S2.9.",
+      "The HITL reply window is 5 minutes from the D1 creation timestamp.",
+      "After that window the gate auto-lifts: the provisional block is cleared and",
+      "any inbound reply (even a valid YES) is rejected as hitl_window_expired.",
+      "The auto-lift itself emits a denial receipt with decision=deny, detail='hitl_timeout'.",
+      "Falsifiability: remove the window check. A late YES reply is processed as if",
+      "  the window were still open and the gate emits an E1 -- this vector fails.",
+      "Spec reference: S2.1 HITL timeout/auto-lift contract.",
+      "Note: the 5-minute window here (C6) is distinct from the 72-hour provisional",
+      "  block window in the replay-chain gate (C9). The HITL window guards SMS reply",
+      "  liveness; the replay-chain window guards chain anchor freshness."
+    ],
+    "d1_age_ms_over_window": 1000,
+    "hitl_window_ms": 300000,
+    "mock_sns_topic_arn_valid": true,
+    "inbound_body": "YES",
+    "assertions": [
+      {
+        "field": "error_kind",
+        "op": "eq",
+        "value": "hitl_window_expired",
+        "note": "Gate must return hitl_window_expired after 5-minute window"
+      },
+      {
+        "field": "auto_lift_receipt_emitted",
+        "op": "eq",
+        "value": true,
+        "note": "Auto-lift must emit a denial receipt with detail=hitl_timeout"
+      },
+      {
+        "field": "auto_lift_receipt.body.detail",
+        "op": "contains",
+        "value": "hitl_timeout",
+        "note": "auto-lift denial receipt detail must contain 'hitl_timeout'"
+      }
+    ]
+  },
+  {
+    "name": "sms_hitl_flow: SNS SubscriptionConfirmation auto-confirmed",
+    "kind": "sms_hitl_flow_subscription",
+    "expect": "valid",
+    "notes": [
+      "C6 / S2.9.",
+      "When AWS SNS sends a SubscriptionConfirmation message to",
+      "POST /v1/agp/hitl/sns/inbound, the endpoint MUST respond 200 and",
+      "auto-confirm by GET-ing the SubscribeURL supplied in the envelope.",
+      "The SubscribeURL is issued and signed by AWS; the gateway only GETs it.",
+      "Falsifiability: skip the SubscribeURL GET. The subscription remains",
+      "  unconfirmed and AWS never delivers Notification messages.",
+      "Spec reference: AWS SNS subscription confirmation protocol."
+    ],
+    "assertions": [
+      {
+        "field": "http_response_status",
+        "op": "eq",
+        "value": 200,
+        "note": "Endpoint must return 200 to acknowledge the confirmation request"
+      },
+      {
+        "field": "subscribe_url_fetched",
+        "op": "eq",
+        "value": true,
+        "note": "SubscribeURL must be GET-ed to confirm the subscription"
+      }
+    ]
+  },
+  {
+    "name": "sms_hitl_flow: SIM-swap residual disclosure annotation (render_contract; not pass/fail gate)",
+    "kind": "sms_hitl_flow_render_contract",
+    "expect": "annotation_only",
+    "notes": [
+      "C6 / S2.9 / ARCH.1 Section 17.",
+      "SIM-swap is a known residual risk for SMS-based HITL: a carrier-level SIM transfer",
+      "could allow a different device to receive the SMS. This applies regardless of",
+      "whether the transport is Twilio or AWS End User Messaging -- both are telephony",
+      "channels, not cryptographic ones. This is NOT a bug in the gate;",
+      "it is an acknowledged limitation of SMS as the HITL channel.",
+      "The verifier UI MUST render an honest disclosure when subject_type=sms_hitl:",
+      "  'SMS HITL approval is subject to SIM-swap risk. WebAuthn push approval eliminates",
+      "   this residual. See Section 17 of the conformance spec.'",
+      "Roadmap fix: WebAuthn push notification replaces SMS as the HITL channel for",
+      "high-assurance operators. Until then, the disclosure is mandatory in the verifier.",
+      "This vector is annotation_only: it does not produce a pass or fail on the HITL",
+      "implementation itself, only on the verifier UI rendering of the receipt."
+    ],
+    "render_contract": {
+      "subject_type": "sms_hitl",
+      "disclosure_required": true,
+      "disclosure_must_contain": [
+        "SIM-swap risk",
+        "WebAuthn"
+      ],
+      "roadmap_note": "WebAuthn push approval eliminates SIM-swap residual (not yet shipped as of 2026-06-18)",
+      "forbidden_label_substrings": [
+        "tamper-proof",
+        "cryptographically secure channel",
+        "independent verification"
+      ],
+      "notes": [
+        "The disclosure must be honest: SMS is a telephony channel, not a cryptographic one.",
+        "Forbidden labels would overclaim the channel's security properties.",
+        "Until WebAuthn ships, the verifier must not label SMS-HITL as an independent signal.",
+        "This applies to both Twilio and AWS End User Messaging transports."
+      ]
+    }
+  }
+]

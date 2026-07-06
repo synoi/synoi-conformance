@@ -1,0 +1,196 @@
+{
+  "status": "PARTIAL",
+  "status_runner": "cargo-test PASS (46 tests, 0 fail, 2 ignored PAPER); runner-SHIPPED for implemented GVs when genesis-gv binary is present; NOT-EXECUTABLE-IN-RUNNER otherwise. DR persistence vectors (dr_a1/dr_b1/dr_epoch1/dr_state_*) are cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER (require filesystem + seal key infrastructure not present in the runner).",
+  "status_caveat": "ENVIRONMENT-CONDITIONAL. GV-1..GV-12, GV-14..GV-19, Section 10.2.1 carrier-pin are cargo-test PASS and runner-SHIPPED when genesis-gv binary is present (iteration-12, 2026-06-20). DR persistence vectors (dr_a1/dr_b1/dr_epoch1/dr_state_missing/dr_state_corrupt/dr_state_foreign/dr_state_torn) are cargo-test PASS as of 2026-06-21 (iteration-13; synoi-genesis persistence_dr_tests, 46 passed). dr_state_rollback is PAPER (honest-limit companion; see vector entry). GV-11 stale-image Signal-3 SHIPPED-against-test-keys (transparency-log-sourced-LKG arm Signal 1/2 is PAPER). GV-12 rotation-overlap SHIPPED-against-test-keys. GV-16b multi-manifest supersedes selection SHIPPED-against-test-keys (transparency-log LKG anchor of supersedes root is PAPER, task #26). GV-13 PAPER (transparency log). GV-17/18/19 SHIPPED-against-test-keys. Transparency-log CHANNEL is PAPER (task #26). OS-keystore seal key for state record is PAPER/seam (test seeds [17]/[18] used). Anti-rollback FULL (host-root) is PAPER (Phase-0 bounded-residual posture, ADR_011 Section 3.2.3.1 item 3). CLAIMS_DISCIPLINE: do NOT promote cross-restart DR enforcement above PARTIAL-against-test-keys. Do NOT claim 'runtime verifies its genesis trust root' above PAPER until GV-13, transparency-log channel, production-key integration, and production OS-keystore seal key are resolved.",
+  "defects": [],
+  "vectors": [
+    {
+      "name": "gv-1a-tampered-sig-ed25519-invalid",
+      "tag": "GV-1a",
+      "expected": "PASS",
+      "description": "Flip Ed25519 sig byte in manifest attestation. Expected: ManifestVerifyFailed (exact variant). Distinct from GV-1b (ML-DSA-invalid) and GV-4 (stripped ML-DSA-65)."
+    },
+    {
+      "name": "gv-1b-tampered-sig-ml-dsa-invalid",
+      "tag": "GV-1b",
+      "expected": "PASS",
+      "description": "Corrupt ML-DSA-65 sig bytes in manifest attestation. Expected: EXACT GenesisError::MlDsaInvalid (structured variant from carrier structured-error refactor). Before refactor: string-match on ManifestVerifyFailed. After refactor: CarrierError::ManifestMlDsaInvalid maps directly."
+    },
+    {
+      "name": "gv-2-unpinned-bundle-oid",
+      "tag": "GV-2",
+      "expected": "PASS",
+      "description": "Carried bundle CDRO tampered; cdro_oid differs from pinned value. Expected: UnpinnedGenesisOid (bundle_oid mismatch)."
+    },
+    {
+      "name": "gv-3-unpinned-bytecode-oid",
+      "tag": "GV-3",
+      "expected": "PASS",
+      "description": "Correct bundle CDRO but wrong bytecode bytes. Expected: UnpinnedGenesisOid with reason containing 'bytecode_oid' (RANK 8 severity: attacker swaps runtime code while preserving CDRO)."
+    },
+    {
+      "name": "gv-4-downgraded-ed25519-only-exact-variant",
+      "tag": "GV-4",
+      "expected": "PASS",
+      "description": "Remove ML-DSA-65 entry from manifest attestation signatures. Expected: EXACT GenesisError::MissingMlDsa65 (not ManifestVerifyFailed with string content). This is the primary motivation for the carrier structured-error refactor in iteration-11."
+    },
+    {
+      "name": "gv-5-payload-core-mismatch",
+      "tag": "GV-5",
+      "expected": "PASS",
+      "description": "Corrupt attestation.payload string. Expected: PayloadCoreMismatch (fires before sig check)."
+    },
+    {
+      "name": "gv-6-wrong-payloadType",
+      "tag": "GV-6",
+      "expected": "PASS",
+      "description": "Manifest signed under CARRIER_PAYLOAD_TYPE (wrong type). PAE-binding closes cross-type confused-deputy hazard. Expected: ManifestVerifyFailed or PayloadCoreMismatch."
+    },
+    {
+      "name": "gv-7-signer-not-bound",
+      "tag": "GV-7",
+      "expected": "PASS",
+      "description": "Sub-case 7a: empty image_signing_slots -> MissingBoundKey. Sub-case 7b: wrong slot (all-zero OID) -> SignerNotBound."
+    },
+    {
+      "name": "gv-8-missing-pinned-bundle",
+      "tag": "GV-8",
+      "expected": "PASS",
+      "description": "Manifest pins 3 roles; only 2 carried bundles supplied. Expected: MissingPinnedBundle for the absent role."
+    },
+    {
+      "name": "gv-9-extra-genesis-bundle",
+      "tag": "GV-9",
+      "expected": "PASS",
+      "description": "Extra carried bundle (no pin in manifest). Expected: EXACT GenesisError::ExtraGenesisBundle. Distinct from GV-2/GV-3 (UnpinnedGenesisOid): those fire when the role IS pinned but OID content mismatches; GV-9 fires when the role has no pin at all. Step-ordering defect fixed iteration-11: step-5 sub-case for missing role now emits ExtraGenesisBundle; UnpinnedGenesisOid reserved for OID-content mismatch."
+    },
+    {
+      "name": "gv-10-manifest-window",
+      "tag": "GV-10",
+      "expected": "PASS",
+      "description": "Sub-case 10a: not_before in future (2099) -> ManifestWindow. Sub-case 10b: not_after in past (2026-01-02) -> ManifestWindow. Both re-signed manifests."
+    },
+    {
+      "name": "gv-11-stale-image-detected",
+      "tag": "GV-11",
+      "expected": "PASS",
+      "description": "Stale-image detection via ADR_011 Section 4 Signal 3 (receipt-binding arm). verify_genesis_manifest_with_lkg compares runtime_image_oid against an explicitly-supplied LKG. When OIDs differ: loader STARTs but returns GenesisStartOutcome::Stale with a GenesisStaleSignal. When OIDs match or no LKG: returns Fresh. Three sub-cases tested: mismatching LKG -> Stale; matching LKG -> Fresh; None -> Fresh. CLAIMS_DISCIPLINE: transparency-log-sourced-LKG arm (Signal 1/2) is PAPER. SHIPPED-against-test-keys."
+    },
+    {
+      "name": "gv-12-rotation-overlap-accepted",
+      "tag": "GV-12",
+      "expected": "PASS",
+      "description": "Key rotation overlap: manifest signed by the NEXT image-signing key is accepted when both current and next slots are provided. The carrier loop iterates all image_signing_slots and finds the slot whose signer_oid matches manifest.signer_oid. Fixture uses NEXT_IMAGE_SIGNING_ED_SEED=[9,0,...,9] / NEXT_IMAGE_SIGNING_ML_SEED=[10,0,...,10] (TEST KEYS ONLY, no KMS). SHIPPED-against-test-keys."
+    },
+    {
+      "name": "gv-13-revoked-key-after-cutoff-paper",
+      "tag": "GV-13",
+      "expected": "PASS",
+      "description": "PAPER: revoked-key-after-cutoff depends on transparency log not implemented. Reports PASS with PAPER annotation."
+    },
+    {
+      "name": "gv-14-happy-path-accept",
+      "tag": "GV-14",
+      "expected": "PASS",
+      "description": "Well-formed manifest + matching carried bundles. Expected: Ok(VerifiedGenesisSet) with 3 bundle roles, non-empty carrier_signing_signer_oid, runtime_image_version=0.0.0-test."
+    },
+    {
+      "name": "gv-15-unsorted-pinned-genesis",
+      "tag": "GV-15",
+      "expected": "PASS",
+      "description": "Reverse pinned_genesis array order in manifest JSON. Attestation payload was signed over sorted order; array reversal changes canonical form -> PayloadCoreMismatch at step 3."
+    },
+    {
+      "name": "gv-16a-external-manifest-variant-wired",
+      "tag": "GV-16a",
+      "expected": "PASS",
+      "description": "ExternalManifest variant is structurally present in GenesisError enum with error message 'external-manifest'. Behavioral assertion (Section 1.4 external-manifest rejection via multi-manifest selection path) is PENDING GV-16b."
+    },
+    {
+      "name": "gv-16b-older-in-window-not-preferred",
+      "tag": "GV-16b",
+      "expected": "PASS",
+      "description": "Multi-manifest supersedes selection: select_and_verify_genesis_manifest picks the candidate with the longest verifiable supersedes chain. Two in-window candidates: A (root, chain length 1) and B (supersedes A, chain length 2). B must be selected; A is superseded. Single candidate: returns that candidate. Empty candidates: MissingManifest. CLAIMS_DISCIPLINE: transparency-log LKG anchor of supersedes root is PAPER (task #26); chain coherence verified within the provided candidate set only. SHIPPED-against-test-keys."
+    },
+    {
+      "name": "gv-17-wrong-payloadType-disable-list-rejected",
+      "tag": "GV-17",
+      "expected": "PASS",
+      "description": "SHIPPED-against-test-keys. A validly hybrid-signed genesis MANIFEST (or other CDRO) presented as a disable list must be REFUSED (reason: DisableListPayloadTypeMismatch). The DISABLE_LIST_PAYLOAD_TYPE ('application/vnd.synoi.genesis-disable-list+json') is distinct from the genesis-manifest type; PAE-binding closes the cross-type confused-deputy hazard (RANK 4.1/RANK 6, ADR_011 Section 3.2.2). Implemented via verify_disable_list_cdro payloadType guard. Transparency-log CHANNEL is PAPER (task #26)."
+    },
+    {
+      "name": "gv-18-disable-list-replay-rejected",
+      "tag": "GV-18",
+      "expected": "PASS",
+      "description": "SHIPPED-against-test-keys. Anti-replay and window checks per ADR_011 Section 3.2.3. Three sub-cases: (a) disable-list sequence at HWM (seq=10 replayed when HWM=10) -> DisableReplay; HWM unchanged; (b) sequence below HWM (seq=5 when HWM=10) -> DisableReplay; (c) valid sequence but not_after in past (expired window) -> DisableWindow; HWM unchanged. Both checks over SIGNED fields (tamper -> hybrid verify fails first). Monotonic uint64 sequence high-water mark tracked in DisableListLoader.sequence_hwm (in-memory, test-only; production HWM persistence is PAPER). Transparency-log CHANNEL is PAPER (task #26)."
+    },
+    {
+      "name": "gv-19-disable-list-off-without-bound-slot",
+      "tag": "GV-19",
+      "expected": "PASS",
+      "description": "SHIPPED-against-test-keys. Feature CONFIGURED ON (enabled=true) but built WITHOUT a compiled-in disable-list bound slot (DisableListLoader.disable_list_slot = None). Must treat the list as PERMANENTLY DISABLED: consult NO channel (no fetch, no verify, no HWM update, no LKG read). The absent slot is the gate; the config flag alone cannot enable the feature (ADR_011 Section 3.2.7 NEW-1). Proven by: Ok returned (bundle loads), HWM stays 0, LKG stays None, even when a disable-list CDRO is supplied. Transparency-log CHANNEL is PAPER (task #26)."
+    },
+    {
+      "name": "section-10-2-1-carrier-pin",
+      "tag": "carrier-pin",
+      "expected": "PASS",
+      "description": "Manifest verifies image-signing signature but omits carrier_signing_signer_oid. Expected: ManifestMissingCarrierPin (GV-28 analog for the genesis loader path)."
+    },
+    {
+      "name": "dr-a1-replay-after-restart-must-not-re-brick",
+      "tag": "DR-A1",
+      "expected": "PASS",
+      "status": "PARTIAL (cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER)",
+      "description": "Cross-restart disable-list anti-replay (ADR_011 Section 3.2.3.1 item 6, dr_a1). Apply disable entry seq=5 advancing HWM to 5; persist state; reconstruct DisableListLoader from persisted store (simulating restart); replay retracted entry seq=3 (at/below persisted HWM=5). Must return DisableReplay. FAIL MODE DEMONSTRATED: in-memory-only loader (HWM=0 after restart) admits seq=3, proving the bug this persistence slice fixes. FIX DEMONSTRATED: loaded HWM=5 causes DisableReplay. CLAIMS: PARTIAL-against-test-keys; seal uses TEST keys [17]/[18]; OS-keystore derivation is PAPER/seam. cargo-test PASS (persistence_dr_tests::dr_a1_replay_after_restart_must_not_re_brick, synoi-genesis 2026-06-21). NOT-EXECUTABLE-IN-RUNNER: requires filesystem writes and the TestStateSealSigner from test-fixtures feature."
+    },
+    {
+      "name": "dr-b1-lkg-survives-restart-must-still-refuse",
+      "tag": "DR-B1",
+      "expected": "PASS",
+      "status": "PARTIAL (cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER)",
+      "description": "Cross-restart LKG suppress-resistance (ADR_011 Section 3.2.3.1 item 6, dr_b1). Apply in-window disable list naming bundle X (sets LKG, seq=1); persist state; reconstruct loader from persisted store; call verify_genesis_manifest_with_disable_list with dark channel (disable_list_cdro=None). Must return GenesisDisabled via Section 3.2.4 LKG branch. FAIL MODE DEMONSTRATED: in-memory-only loader has LKG=None after restart, bundle boots (bug). FIX DEMONSTRATED: loaded LKG from store still names bundle X; bundle refused even with dark channel. CLAIMS: PARTIAL-against-test-keys. cargo-test PASS 2026-06-21. NOT-EXECUTABLE-IN-RUNNER."
+    },
+    {
+      "name": "dr-epoch1-epoch-hwm-survives-restart-must-reconsult",
+      "tag": "DR-EPOCH1",
+      "expected": "PASS",
+      "status": "PARTIAL (cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER)",
+      "description": "Cross-restart revocation-epoch anti-rollback (ADR_011 Section 3.2.3.1 item 6, dr_epoch1). Persist revocation_epoch_hwm=7; reconstruct loader from persisted store; call gate_decision_cache_admit with a decision at revocation_epoch=4. Must return MustReconsult(StaleEpoch) (4 < 7). FAIL MODE DEMONSTRATED: hardcoded last_seen_epoch=0 in stage6_render_loop.rs:466 admits epoch=4 decision (bug). FIX DEMONSTRATED: loaded epoch_hwm=7 from store causes StaleEpoch. SEAM: stage6_render_loop.rs:466 now holds last_seen_epoch_from_state variable with documented production wiring point. CLAIMS: PARTIAL-against-test-keys. cargo-test PASS 2026-06-21. NOT-EXECUTABLE-IN-RUNNER."
+    },
+    {
+      "name": "dr-state-missing-boot-proceeds-zeros-alert",
+      "tag": "DR-STATE-MISSING",
+      "expected": "PASS",
+      "status": "PARTIAL (cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER)",
+      "description": "Missing state file (first boot / fresh install). Must return StateReadOutcome::Missing, emit StateMissingReestablishing alert, and leave loader at zeros (fail-open; no brick). ADR_011 Section 3.2.3.1 item 4(i). cargo-test PASS 2026-06-21."
+    },
+    {
+      "name": "dr-state-corrupt-seal-invalid-fails-open-with-alert",
+      "tag": "DR-STATE-CORRUPT",
+      "expected": "PASS",
+      "status": "PARTIAL (cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER)",
+      "description": "Corrupt state record (one byte flipped in sealed JSON). Seal verify FAILS; record DISCARDED; StateReadOutcome::Corrupt returned; StateCorruptReestablishing alert emitted; boot proceeds; loader left at zeros. ADR_011 Section 3.2.3.1 item 4(ii). The entire record is discarded on seal failure (no partial trust in a broken seal). cargo-test PASS 2026-06-21."
+    },
+    {
+      "name": "dr-state-foreign-image-rejected-fails-open",
+      "tag": "DR-STATE-FOREIGN",
+      "expected": "PASS",
+      "status": "PARTIAL (cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER)",
+      "description": "State record carrying runtime_image_oid for a different runtime image. Cross-image consume guard (ADR_011 Section 3.2.3.1 item 1): mismatch -> treated as corrupt (StateReadOutcome::Corrupt + StateCorruptReestablishing alert). Boot proceeds; one install's state cannot suppress another's enforcement. cargo-test PASS 2026-06-21."
+    },
+    {
+      "name": "dr-state-torn-write-live-record-survives",
+      "tag": "DR-STATE-TORN",
+      "expected": "PASS",
+      "status": "PARTIAL (cargo-backed PARTIAL-against-test-keys; NOT-EXECUTABLE-IN-RUNNER)",
+      "description": "Atomic write ensures no torn-write consumption. A truncated .tmp file present after simulated mid-write crash is ignored; read_state reads ONLY the live path which holds the prior fully-sealed record. Proves atomicity: write-to-temp-fsync-rename (ADR_011 Section 3.2.3.1 item 5). Hydrated values from live record (hwm=3, epoch=2) confirmed correct. cargo-test PASS 2026-06-21."
+    },
+    {
+      "name": "dr-state-rollback-paper-residual-companion",
+      "tag": "DR-STATE-ROLLBACK",
+      "expected": "PAPER",
+      "status": "PAPER (honest-limit companion; #[ignore]d in cargo tests)",
+      "description": "PAPER RESIDUAL COMPANION (ADR_011 Section 3.2.3.1 item 3). A validly-sealed OLDER state record restored by a host-root attacker is INDISTINGUISHABLE from a fresh record under the Phase-0 software-only posture. The rollback IS undetectable: the old record verifies (it was once legitimately written), loads Ok, and hydrates the rolled-back HWM. FULL anti-rollback requires (a) hardware monotonic counter (TPM NV counter / secure-element) or (b) witnessed transparency-log anchor (ADR_012 Section 4 / [[project_translog_witnessing_transition]]). Neither exists in Phase-0. The #[ignore]d cargo test (dr_state_rollback_paper_residual_companion) documents this as a positive assertion: the test ASSERTS the rollback is accepted (StateReadOutcome::Ok + HWM=3), confirming the honest limit rather than hiding it. NOT-EXECUTABLE-IN-RUNNER. Do NOT promote to PASS; this vector documents the PAPER boundary."
+    }
+  ]
+}

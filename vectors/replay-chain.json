@@ -1,0 +1,306 @@
+[
+  {
+    "name": "replay-chain: valid D1 -> E1 chain (denial-then-execution)",
+    "kind": "replay_chain_pair",
+    "expect": "valid",
+    "notes": [
+      "S2.3 - 2-receipt downgrade per re-panel verdict.",
+      "D1 is a denial receipt (status=denied, no replayed_after).",
+      "E1 is an execution receipt (status=ok) carrying:",
+      "  replayed_after = D1.oid  (body field, signed into canonical projection)",
+      "  prev           = D1.oid  (envelope Merkle parent edge)",
+      "  authority.subject_oid = D1.oid  (verifier walk target)",
+      "Non-claim discipline: this chain is NOT labelled 'Replay Approval'.",
+      "External label: 'denied at T0, HITL approved, executed at T1'.",
+      "Merkle edge: E1.prev === D1.oid  (same edge pattern as supersedeReceipt).",
+      "Hash values below are representative sha256: placeholder OIDs;",
+      "a conformance harness must compute real OIDs before verifying signatures."
+    ],
+    "d1": {
+      "oid": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258200000,
+      "created_by": "actor:steve-demo",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000001",
+        "initiator": {
+          "actor_oid": "actor:steve-demo",
+          "actor_type": "human_user"
+        },
+        "status": "denied",
+        "decision": "deny",
+        "detail": "HITL pending: awaiting operator approval via SMS",
+        "initiated_at_ms": 1750258200000,
+        "resolved_at_ms": 1750258200000
+      }
+    },
+    "e1": {
+      "oid": "sha256:e100000000000000000000000000000000000000000000000000000000000002",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258260000,
+      "created_by": "actor:steve-demo",
+      "prev": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000002",
+        "initiator": {
+          "actor_oid": "actor:steve-demo",
+          "actor_type": "human_user"
+        },
+        "status": "ok",
+        "decision": "allow",
+        "replayed_after": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+        "authority": {
+          "grant_oid": "sha256:grant0000000000000000000000000000000000000000000000000000000001",
+          "subject_oid": "sha256:d100000000000000000000000000000000000000000000000000000000000001"
+        },
+        "detail": "hitl_approval_signal_oid=hitl-sms-reply-abc123",
+        "capability_grant_oids": [
+          "sha256:grant0000000000000000000000000000000000000000000000000000000001"
+        ],
+        "initiated_at_ms": 1750258260000,
+        "resolved_at_ms": 1750258260000
+      }
+    },
+    "assertions": [
+      {
+        "field": "e1.body.replayed_after",
+        "op": "eq",
+        "value": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+        "note": "E1.body.replayed_after must equal D1.oid"
+      },
+      {
+        "field": "e1.prev",
+        "op": "eq",
+        "value": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+        "note": "E1.prev (Merkle parent) must equal D1.oid"
+      },
+      {
+        "field": "e1.body.authority.subject_oid",
+        "op": "eq",
+        "value": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+        "note": "authority.subject_oid carries D1.oid so verifier can walk chain"
+      },
+      {
+        "field": "d1.body.status",
+        "op": "eq",
+        "value": "denied",
+        "note": "D1 must be a denial receipt"
+      },
+      {
+        "field": "e1.body.status",
+        "op": "eq",
+        "value": "ok",
+        "note": "E1 must be an execution receipt"
+      },
+      {
+        "field": "e1.body.replayed_after",
+        "op": "eq",
+        "value": "e1.prev",
+        "note": "replayed_after and prev must reference the same D1.oid (pattern invariant)"
+      }
+    ]
+  },
+  {
+    "name": "replay-chain: REJECT E1 with replayed_after != prev (broken Merkle edge)",
+    "kind": "replay_chain_pair",
+    "expect": "invalid",
+    "expected_error_kind": "merkle_edge_mismatch",
+    "expected_error_detail": "E1.prev must equal E1.body.replayed_after",
+    "notes": [
+      "A well-formed chain requires E1.prev === E1.body.replayed_after.",
+      "If they diverge, the Merkle parent edge and the body reference disagree.",
+      "A conformance harness must detect and reject this as merkle_edge_mismatch."
+    ],
+    "d1": {
+      "oid": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258200000,
+      "created_by": "actor:steve-demo",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000001",
+        "initiator": { "actor_oid": "actor:steve-demo", "actor_type": "human_user" },
+        "status": "denied",
+        "decision": "deny",
+        "initiated_at_ms": 1750258200000,
+        "resolved_at_ms": 1750258200000
+      }
+    },
+    "e1": {
+      "oid": "sha256:e100000000000000000000000000000000000000000000000000000000000099",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258260000,
+      "created_by": "actor:steve-demo",
+      "prev": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000002",
+        "initiator": { "actor_oid": "actor:steve-demo", "actor_type": "human_user" },
+        "status": "ok",
+        "decision": "allow",
+        "replayed_after": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+        "initiated_at_ms": 1750258260000,
+        "resolved_at_ms": 1750258260000
+      }
+    }
+  },
+  {
+    "name": "replay-chain: REJECT cross-principal replay (D1 principal != E1 principal)",
+    "kind": "replay_chain_gate",
+    "expect": "invalid",
+    "expected_error_kind": "cross_principal_mismatch",
+    "expected_error_detail": "E1 principal must equal D1 principal",
+    "notes": [
+      "D1 was denied for actor:steve-demo.",
+      "An attempt to replay as actor:other-principal must be rejected.",
+      "The gate compares D1.body.initiator.actor_oid against input.caller.actor_oid.",
+      "Mismatch results in cross_principal_mismatch (not a grant failure)."
+    ],
+    "denial_principal": "actor:steve-demo",
+    "replay_principal": "actor:other-principal",
+    "d1_oid": "sha256:d100000000000000000000000000000000000000000000000000000000000001"
+  },
+  {
+    "name": "replay-chain: REJECT replay of expired provisional window (D1 > 72hr old)",
+    "kind": "replay_chain_gate",
+    "expect": "invalid",
+    "expected_error_kind": "provisional_window_expired",
+    "expected_error_detail": "D1 is older than REPLAY_CHAIN_WINDOW_MS (72hr)",
+    "notes": [
+      "The provisional-block window is 72 hours.",
+      "A denial receipt D1 created more than 72hr ago cannot anchor an E1.",
+      "The gate computes now - D1.created_at_ms > 72hr and rejects with provisional_window_expired.",
+      "This mirrors the revocation.ts PROVISIONAL_BLOCK_WINDOW_MS constant."
+    ],
+    "d1_age_ms_over_window": 1000,
+    "window_ms": 259200000
+  },
+  {
+    "name": "replay-chain: REJECT replay without HITL signal (empty signal OID)",
+    "kind": "replay_chain_gate",
+    "expect": "invalid",
+    "expected_error_kind": "hitl_signal_missing",
+    "expected_error_detail": "hitl_approval_signal_oid must be a non-empty string",
+    "notes": [
+      "The gate requires hitl_approval_signal_oid to be present and non-empty.",
+      "An empty string or absent field is rejected as hitl_signal_missing.",
+      "This enforces that callers authenticate the HITL signal before attempting replay."
+    ]
+  },
+  {
+    "name": "replay-chain: chain length=1 (E1 without replayed_after) is a standalone receipt, not a chain",
+    "kind": "replay_chain_pair",
+    "expect": "invalid",
+    "expected_error_kind": "missing_replayed_after",
+    "expected_error_detail": "E1.body.replayed_after must be present for a replay chain receipt",
+    "notes": [
+      "C9 gap / S2.9.",
+      "A receipt with prev set but no replayed_after in its body is NOT a replay chain.",
+      "The prev field alone (Merkle parent) does not satisfy the replay-chain contract.",
+      "The body MUST carry replayed_after pointing at the denial receipt OID.",
+      "Falsifiability: accept any receipt with prev as a valid chain. The gate would",
+      "  emit a false 'valid chain' result and this vector fails.",
+      "Spec reference: replay-chain contract; E1 body invariant."
+    ],
+    "d1": {
+      "oid": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258200000,
+      "created_by": "actor:steve-demo",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000001",
+        "initiator": { "actor_oid": "actor:steve-demo", "actor_type": "human_user" },
+        "status": "denied",
+        "decision": "deny",
+        "initiated_at_ms": 1750258200000,
+        "resolved_at_ms": 1750258200000
+      }
+    },
+    "e1": {
+      "oid": "sha256:e100000000000000000000000000000000000000000000000000000000000003",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258260000,
+      "created_by": "actor:steve-demo",
+      "prev": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000002",
+        "initiator": { "actor_oid": "actor:steve-demo", "actor_type": "human_user" },
+        "status": "ok",
+        "decision": "allow",
+        "initiated_at_ms": 1750258260000,
+        "resolved_at_ms": 1750258260000
+      }
+    }
+  },
+  {
+    "name": "replay-chain: REJECT E1 with tampered replayed_after (random OID, not D1.oid)",
+    "kind": "replay_chain_pair",
+    "expect": "invalid",
+    "expected_error_kind": "replayed_after_not_found",
+    "expected_error_detail": "E1.body.replayed_after does not resolve to a known denial receipt",
+    "notes": [
+      "C9 gap / S2.9.",
+      "E1.body.replayed_after points at a random OID that does not correspond to any",
+      "known denial receipt in the chain store. The gate must reject this.",
+      "Additionally E1.prev does not equal E1.body.replayed_after, so merkle_edge_mismatch",
+      "would also fire. The gate MUST check replayed_after resolution BEFORE the Merkle",
+      "edge so the error reason is deterministic: replayed_after_not_found fires first.",
+      "Falsifiability: skip the replayed_after resolution check. The gate may fall through",
+      "  to Merkle edge check and emit merkle_edge_mismatch instead of",
+      "  replayed_after_not_found -- or worse, accept the receipt if both checks are absent.",
+      "Spec reference: replay-chain gate; D1 resolution contract."
+    ],
+    "d1": {
+      "oid": "sha256:d100000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258200000,
+      "created_by": "actor:steve-demo",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000001",
+        "initiator": { "actor_oid": "actor:steve-demo", "actor_type": "human_user" },
+        "status": "denied",
+        "decision": "deny",
+        "initiated_at_ms": 1750258200000,
+        "resolved_at_ms": 1750258200000
+      }
+    },
+    "e1": {
+      "oid": "sha256:e100000000000000000000000000000000000000000000000000000000000004",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "tenant:steve-demo-2026-06-18",
+      "created_at_ms": 1750258260000,
+      "created_by": "actor:steve-demo",
+      "prev": "sha256:ffff0000000000000000000000000000000000000000000000000000000000ff",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:inv000000000000000000000000000000000000000000000000000000000002",
+        "initiator": { "actor_oid": "actor:steve-demo", "actor_type": "human_user" },
+        "status": "ok",
+        "decision": "allow",
+        "replayed_after": "sha256:ffff0000000000000000000000000000000000000000000000000000000000ff",
+        "initiated_at_ms": 1750258260000,
+        "resolved_at_ms": 1750258260000
+      }
+    }
+  }
+]

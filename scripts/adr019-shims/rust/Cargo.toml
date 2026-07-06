@@ -1,0 +1,17 @@
+# ADR_019 cross-language conformance shim (Rust). Invokes the REAL gap-core
+# Rust SDK projection (compute_gap_oid / cdro_oid) via a local path dependency,
+# so the cross-language gate exercises shipped SDK code. Test harness only,
+# never published.
+[package]
+name = "adr019-shim"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "adr019-shim"
+path = "main.rs"
+
+[dependencies]
+gap-core = { path = "../../../../synoi-gap/rust" }
+serde_json = "1"

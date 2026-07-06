@@ -1,0 +1,39 @@
+[
+  {
+    "name": "cdro content-core is deterministic",
+    "kind": "cdro_roundtrip",
+    "cdro": {
+      "type": "gap:decision_receipt",
+      "sraid_version": "2.0",
+      "tenant_id": "round-trip-tenant",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "body": {
+        "action": "open_door",
+        "risk": "A"
+      }
+    },
+    "expected_content_core_1": "{\"body\":{\"action\":\"open_door\",\"risk\":\"A\"},\"created_at_ms\":1716840000000,\"created_by\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sraid_version\":\"2.0\",\"tenant_id\":\"round-trip-tenant\",\"type\":\"gap:decision_receipt\"}",
+    "expected_content_core_2": "{\"body\":{\"action\":\"open_door\",\"risk\":\"A\"},\"created_at_ms\":1716840000000,\"created_by\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"sraid_version\":\"2.0\",\"tenant_id\":\"round-trip-tenant\",\"type\":\"gap:decision_receipt\"}",
+    "expected_deterministic": true,
+    "note": "canonicalize(cdroContentCore(cdro)) called twice on same input must return byte-identical string"
+  },
+  {
+    "name": "cdro oid matches oidOf(cdroContentCore(cdro))",
+    "kind": "cdro_roundtrip",
+    "cdro": {
+      "type": "gap:decision_receipt",
+      "sraid_version": "2.0",
+      "tenant_id": "round-trip-tenant",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "body": {
+        "action": "open_door",
+        "risk": "A"
+      }
+    },
+    "expected_oid": "sha256:3667d214f4035867737d0580b281df171f6f9de35d9d93e3e91b8f09eb773ad1",
+    "expected_core_oid": "sha256:3667d214f4035867737d0580b281df171f6f9de35d9d93e3e91b8f09eb773ad1",
+    "note": "cdroOid must equal oidOf(cdroContentCore(cdro)) - these are the same object"
+  }
+]

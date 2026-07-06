@@ -1,0 +1,183 @@
+{
+  "status": "PARTIAL",
+  "status_runner": "cargo-test PASS (24 tests, 0 fail); runner-SHIPPED for TL-01..TL-17 + TL-Ex-01..TL-Ex-04 when translog-gv binary is present; NOT-EXECUTABLE-IN-RUNNER otherwise",
+  "status_caveat": "ENVIRONMENT-CONDITIONAL. TL-01..TL-17 are cargo-test PASS (ADR_012 Phase-0, 2026-06-21). RFC 6962 Merkle tree, STH hybrid DSSE, entry types (LKG, image-key-revocation, genesis-revocation-list, genesis-disable-list, build-attestation), inclusion and consistency proofs all runner-SHIPPED-against-TEST-KEYS (PARTIAL, not SHIPPED as a production behavior). Revocation key-cutoff enforcement (TL-08) is advisory only in Phase-0 (per ADR_012 contract: detection-only, no block per ADR_012 contract). Gossip, multi-party STH comparison, and live log fetch remain PAPER (ADR_012 Phase-1+). DETECT/ADVISORY only in Phase-0: TL-08 cutoff, disable-list channel, LKG, Class A propagation are NOT enforced; they promote to ENFORCING only at the witnessed-production transition (ADR_012 Section 11.1). Witness network, split-view resistance, HA, public mirrors, and production KMS log key stay PAPER. The integrated genesis-boot trust-root stays PAPER (ADR_011). Binary expected at synoi-runtime-wt/runtime/translog/target/debug/translog-gv[.exe]; set SYNOI_RUNTIME_DIR to the worktree root.",
+  "tl_numbering_traceability": {
+    "NOTE": "TL-01..TL-17 in this fixture and in translog-gv NOW match ADR_012 Section 5 canonical numbering one-to-one. TL-Ex-01..TL-Ex-04 are extra behaviors exercised here that have no ADR Section 5 vector number.",
+    "impl_tag_to_adr_canonical": {
+      "TL-01 inclusion-proof-verifies": "ADR TL-1 (same)",
+      "TL-02 tampered-inclusion-proof-rejected": "ADR TL-2 (same)",
+      "TL-03 consistency-proof-verifies": "ADR TL-3 (same)",
+      "TL-04 tampered-consistency-proof-rejected": "ADR TL-4 non-append-only-removed-leaf-rejected (same reason: consistency-proof-invalid; impl tampers proof bytes rather than removing a historical leaf)",
+      "TL-05 sth-signs-and-verifies": "ADR TL-5 STH-signature-verifies (positive)",
+      "TL-06 forged-STH-rejected": "ADR TL-6 forged-STH-rejected (SECURITY-CRITICAL: AND-enforce / no-downgrade)",
+      "TL-07 sth-rewind-rejected": "ADR TL-7 sth-rewind-rejected",
+      "TL-08 revoked-key-detect-advisory": "ADR TL-8 GV-13-revoked-key-after-cutoff (impl asserts inclusion-only DETECT/ADVISORY; ADR TL-8 also specifies enforce-for-upgraded-runtime which is NOT exercised here)",
+      "TL-09 disable-list-entry-via-log": "ADR TL-9 disable-list-entry-via-log",
+      "TL-10 lkg-tuple-appended-and-retrievable": "ADR TL-10 LKG-published-and-fetched",
+      "TL-11 entry-included-but-wrongly-signed-rejected": "ADR TL-11 entry-included-but-wrongly-signed-rejected",
+      "TL-12 split-view-not-detected-single-client": "ADR TL-12 (same)",
+      "TL-13 wrong-length-inclusion-proof-rejected": "ADR TL-13 (same)",
+      "TL-14 wrong-length-consistency-proof-rejected": "ADR TL-14 (same)",
+      "TL-15 root-hash-not-an-oid": "ADR TL-15 (same)",
+      "TL-16 log-unreachable-alert-fires": "ADR TL-16 (same)",
+      "TL-17 merkle-leaf-encoding-determinism": "ADR TL-17 merkle-leaf-encoding-determinism / RFC-6962-compliance",
+      "TL-Ex-01 empty-tree-hash-is-sha256-empty": "NO ADR Section 5 vector (RFC 6962 empty-tree edge asserted in ADR Section 1.1 prose only)",
+      "TL-Ex-02 duplicate-oid-rejected": "NO numbered ADR Section 5 vector (ADR Section 2.4 duplicate-OID rule)",
+      "TL-Ex-03 sth-sequence-monotone-ok": "NO ADR Section 5 vector (positive monotone case; ADR has only the rewind NEGATIVE as TL-7)",
+      "TL-Ex-04 build-attestation-appended-and-verified": "NO numbered ADR Section 5 vector (build-attestation is a REUSE entry type, ADR Section 2)"
+    }
+  },
+  "defects": [],
+  "vectors": [
+    {
+      "name": "tl-01-inclusion-proof-verifies",
+      "tag": "TL-01",
+      "adr_section_5": "TL-1",
+      "expected": "PASS",
+      "description": "Append 5 entries, generate inclusion proof for leaf 2, verify against computed root. Expected: verify_inclusion returns Ok."
+    },
+    {
+      "name": "tl-02-tampered-inclusion-proof-rejected",
+      "tag": "TL-02",
+      "adr_section_5": "TL-2",
+      "expected": "PASS",
+      "description": "Flip one bit in the audit path; verify_inclusion must reject. Expected: Merkle(InclusionProofInvalid)."
+    },
+    {
+      "name": "tl-03-consistency-proof-verifies",
+      "tag": "TL-03",
+      "adr_section_5": "TL-3",
+      "expected": "PASS",
+      "description": "Build 4-entry store, snapshot old_root, append 2 more (6 total), generate consistency proof (4->6), verify against both roots. Expected: verify_consistency returns Ok. Power-of-two old_size edge case."
+    },
+    {
+      "name": "tl-04-tampered-consistency-proof-rejected",
+      "tag": "TL-04",
+      "adr_section_5": "TL-4",
+      "expected": "PASS",
+      "description": "Flip one bit in the consistency proof; verify_consistency must reject. Expected: Merkle(ConsistencyProofInvalid)."
+    },
+    {
+      "name": "tl-05-sth-signs-and-verifies",
+      "tag": "TL-05",
+      "adr_section_5": "TL-5",
+      "expected": "PASS",
+      "description": "Sign an STH with the log-signing key pair (seed [13]/[14]), verify the STH with matching pub keys. Expected: verify_sth returns Ok."
+    },
+    {
+      "name": "tl-06-forged-sth-rejected",
+      "tag": "TL-06",
+      "adr_section_5": "TL-6",
+      "expected": "PASS",
+      "description": "SECURITY-CRITICAL negative: AND-enforce / no-downgrade assertion. Sign a valid STH, then remove the ML-DSA-65 signature entry. verify_sth must return Err(SignatureInvalid). Confirms that Ed25519-only acceptance is not possible (no downgrade)."
+    },
+    {
+      "name": "tl-07-sth-rewind-rejected",
+      "tag": "TL-07",
+      "adr_section_5": "TL-7",
+      "expected": "PASS",
+      "description": "Sign two STHs; new has tree_size < old AND timestamp < old. verify_sth_sequence (now verifies both STH signatures first) must return Err(SthError::Rewind)."
+    },
+    {
+      "name": "tl-08-revoked-key-detect-advisory",
+      "tag": "TL-08",
+      "adr_section_5": "TL-8",
+      "expected": "PASS",
+      "description": "Append an image-key-revocation entry for the image-signing key (seed [1]/[2]), generate inclusion proof, verify it is in the log. Advisory: cutoff enforcement is client-side in Phase-0 (detection-only, no block per ADR_012 contract).",
+      "status_tag": "DETECT-ADVISORY"
+    },
+    {
+      "name": "tl-09-disable-list-entry-via-log",
+      "tag": "TL-09",
+      "adr_section_5": "TL-9",
+      "expected": "PASS",
+      "description": "Build a genesis-disable-list entry, append to store, generate inclusion proof, call verify_entry_included_and_authentic with GENESIS_DISABLE_LIST_PAYLOAD_TYPE. Both inclusion and attestation must verify. Expected: Ok."
+    },
+    {
+      "name": "tl-10-lkg-tuple-appended-and-retrievable",
+      "tag": "TL-10",
+      "adr_section_5": "TL-10",
+      "expected": "PASS",
+      "description": "Build an LKG tuple entry (entries::build_lkg_tuple), append it, verify the stored leaf hash matches the independently computed leaf_hash(ts, jcs). Expected: hash match."
+    },
+    {
+      "name": "tl-11-entry-included-but-wrongly-signed-rejected",
+      "tag": "TL-11",
+      "adr_section_5": "TL-11",
+      "expected": "PASS",
+      "description": "Inclusion != authenticity negative (P0-2 repro). Build an entry with valid OID content but attestation signed under WRONG payloadType (cross-type forgery). Append to store; verify_inclusion alone passes (leaf is genuinely in the tree). verify_entry_included_and_authentic must reject: Err(AttestationInvalid). Confirms that inclusion alone is not sufficient."
+    },
+    {
+      "name": "tl-12-split-view-not-detected-single-client-honest-limit",
+      "tag": "TL-12",
+      "adr_section_5": "TL-12",
+      "expected": "PASS",
+      "description": "Demonstrate the honest limit: a single client with a single honest log connection cannot detect split-view attacks in Phase-0. Gossip/multi-party STH comparison is PAPER (Phase-1+). Expected: test documents the gap, does not fabricate a detection claim.",
+      "status_tag": "PARTIAL"
+    },
+    {
+      "name": "tl-13-wrong-length-inclusion-proof-rejected",
+      "tag": "TL-13",
+      "adr_section_5": "TL-13",
+      "expected": "PASS",
+      "description": "Append one element to the audit path; verify_inclusion must reject the malformed proof before any hash computation. Expected: Merkle(InclusionProofMalformed)."
+    },
+    {
+      "name": "tl-14-wrong-length-consistency-proof-rejected",
+      "tag": "TL-14",
+      "adr_section_5": "TL-14",
+      "expected": "PASS",
+      "description": "Append one element to the consistency proof; verify_consistency must reject the malformed proof before any hash computation. Expected: Merkle(ConsistencyProofMalformed)."
+    },
+    {
+      "name": "tl-15-root-hash-not-an-oid",
+      "tag": "TL-15",
+      "adr_section_5": "TL-15",
+      "expected": "PASS",
+      "description": "Verify that mth() and oid_of() produce different digests for the same entry JSON, confirming the two hash domains are structurally distinct (no aliasing risk between the log root and the CDRO OID namespace)."
+    },
+    {
+      "name": "tl-16-log-unreachable-alert-fires",
+      "tag": "TL-16",
+      "adr_section_5": "TL-16",
+      "expected": "PASS",
+      "description": "LogUnreachableState with recheck_interval_ms=1000; calling check_freshness at last_sth_time_ms + 2001 must return true (alert). At last_sth_time_ms + 500 must return false (within interval)."
+    },
+    {
+      "name": "tl-17-merkle-leaf-encoding-determinism",
+      "tag": "TL-17",
+      "adr_section_5": "TL-17",
+      "expected": "PASS",
+      "description": "RFC 6962 compliance / cross-implementation interop guard (P0-1 repro). Independently compute the 2-leaf tree root as sha256(0x01 || sha256(0x00||MerkleTreeLeaf0) || sha256(0x00||MerkleTreeLeaf1)) and assert it equals store.compute_root(). Before fix: double-hash in mth() meant actual != expected. After fix: single 0x00 domain application, actual == expected."
+    },
+    {
+      "name": "tl-ex-01-empty-tree-hash-is-sha256-empty",
+      "tag": "TL-Ex-01",
+      "adr_section_5": null,
+      "expected": "PASS",
+      "description": "mth([]) must equal SHA-256(b\"\") per RFC 6962. Expected: hex matches known SHA-256 empty vector e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855."
+    },
+    {
+      "name": "tl-ex-02-duplicate-oid-rejected",
+      "tag": "TL-Ex-02",
+      "adr_section_5": null,
+      "expected": "PASS",
+      "description": "Append an entry, then attempt to append another entry with the same oid. Expected: TranslogError::DuplicateOid on the second append."
+    },
+    {
+      "name": "tl-ex-03-sth-sequence-monotone-ok",
+      "tag": "TL-Ex-03",
+      "adr_section_5": null,
+      "expected": "PASS",
+      "description": "Sign two STHs with strictly increasing tree_size and timestamp. verify_sth_sequence(old, new, pub_keys) must return Ok. Verifies both STH signatures before the monotone check."
+    },
+    {
+      "name": "tl-ex-04-build-attestation-appended-and-verified",
+      "tag": "TL-Ex-04",
+      "adr_section_5": null,
+      "expected": "PASS",
+      "description": "Build a build-attestation entry (entries::build_build_attestation), append it to a store, generate inclusion proof, verify via store.verify_inclusion. Expected: Ok."
+    }
+  ]
+}

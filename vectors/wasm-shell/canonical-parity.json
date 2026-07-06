@@ -1,0 +1,76 @@
+{
+  "description": "Parity oracle for the Rust JCS canonicalizer (synoi-canonical) against the TS reference (synoi-sraid/src/canonicalize.ts + oid.ts). Oracle values produced by running synoi-sraid/dist/ directly under Node 22.",
+  "oracle_source": "synoi-sraid/dist/canonicalize.js + oid.js via Node v22.14.0",
+  "oracle_date": "2026-06-20",
+  "cases": [
+    {
+      "name": "non-bmp-utf16-sort",
+      "description": "U+1D11E (musical G clef, surrogate pair D834+DD1E) vs U+E000 (PUA, single unit). UTF-16 sort: D834 (54324) < E000 (57344), so G clef sorts BEFORE the PUA char. Codepoint order reverses this. Rust must use UTF-16 key sort to match TS.",
+      "kind": "canonicalize",
+      "input_note": "Object with two keys: U+1D11E -> 1, U+E000 -> 2",
+      "expected_canonical": "{\"𝄞\":1,\"\":2}",
+      "ts_oracle_output": "non-bmp-canonical: {\"𝄞\":1,\"\":2}"
+    },
+    {
+      "name": "capbundle-cdro-oid",
+      "description": "capbundle/1 CDRO OID via cdroOid: excludes oid + signature fields, canonicalizes remaining content core, sha256s it.",
+      "kind": "cdro_oid",
+      "input": {
+        "oid": "sha256:placeholder-excluded",
+        "schema_version": "capbundle/1",
+        "bytecode_oid": "sha256:abc123def456",
+        "bytecode_size": 42,
+        "wit_interface": {
+          "text": "package synoi:shell@1.0.0;",
+          "binary_oid": "sha256:witbinary001"
+        },
+        "ux_manifest": {
+          "panels": [],
+          "nav_extensions": [],
+          "first_grant_flow_oid": null,
+          "theme_overrides": null
+        },
+        "entitlement_policy_oid": null,
+        "onboarding_flow_oid": null,
+        "signer_oid": "sha256:signer001",
+        "parent_oids": [],
+        "declared_capabilities": {
+          "host_imports": [],
+          "receipt_subjects": [],
+          "required_scopes": []
+        },
+        "signature": {
+          "ed25519": "base64sig==",
+          "ml_dsa_65": "base64mldsa==",
+          "signed_at": "2026-06-20T00:00:00Z"
+        }
+      },
+      "expected_oid": "sha256:2fccb32d0aff131ab77b21b421e7b0c06e2fc6f34a35c9cbf0f06f860f78b41c",
+      "content_core_canonical": "{\"bytecode_oid\":\"sha256:abc123def456\",\"bytecode_size\":42,\"declared_capabilities\":{\"host_imports\":[],\"receipt_subjects\":[],\"required_scopes\":[]},\"entitlement_policy_oid\":null,\"onboarding_flow_oid\":null,\"parent_oids\":[],\"schema_version\":\"capbundle/1\",\"signer_oid\":\"sha256:signer001\",\"ux_manifest\":{\"first_grant_flow_oid\":null,\"nav_extensions\":[],\"panels\":[],\"theme_overrides\":null},\"wit_interface\":{\"binary_oid\":\"sha256:witbinary001\",\"text\":\"package synoi:shell@1.0.0;\"}}",
+      "ts_oracle_output": "capbundle-oid: sha256:2fccb32d0aff131ab77b21b421e7b0c06e2fc6f34a35c9cbf0f06f860f78b41c"
+    },
+    {
+      "name": "gate-decision-cdro-oid",
+      "description": "GateDecision CDRO OID via cdroOid: excludes oid + signature, canonicalizes content core (ADR_005 Sec 5.1 bound tuple fields), sha256s it.",
+      "kind": "cdro_oid",
+      "input": {
+        "oid": "sha256:placeholder-excluded",
+        "bundle_oid": "sha256:bundle001",
+        "principal_oid": "sha256:principal001",
+        "panel_id": "receipt-stream",
+        "action_kind": "render",
+        "originating_receipt_oid": null,
+        "decision": "allow",
+        "axis": 2,
+        "expires_at": 1750000000000,
+        "signature": {
+          "ed25519": "gatesig==",
+          "ml_dsa_65": "gatemldsa==",
+          "signed_at": "2026-06-20T00:00:00Z"
+        }
+      },
+      "expected_oid": "sha256:466eb7aa5e5c5c102db056ddad442016037af5aacedffee47d958e29a1baaf1f",
+      "ts_oracle_output": "gate-oid: sha256:466eb7aa5e5c5c102db056ddad442016037af5aacedffee47d958e29a1baaf1f"
+    }
+  ]
+}

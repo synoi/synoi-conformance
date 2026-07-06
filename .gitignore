@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+.DS_Store
+.claude/
+
+# ADR_019 cross-language shim build artifacts (harness only, never published)
+scripts/adr019-shims/rust/target/
+scripts/adr019-shims/rust/Cargo.lock
+scripts/adr019-shims/go/go.sum

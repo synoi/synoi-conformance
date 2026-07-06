@@ -1,0 +1,282 @@
+{
+  "protocol": "wasm-shell",
+  "version": "1",
+  "status": "PARTIAL-AGAINST-TEST-KEYS",
+  "status_runner": "NOT-EXECUTABLE-IN-RUNNER (tsx-backed in synoi-runtime-wt on branch wasm-runtime). GREEN 2026-06-23: 21/21 oa-tenant-scope, 30/30 oa-operator-enrollment, 34/34 s1-grant-update, 59/59 local-ingest-router, 29/29 local-ingest-security-2-3-4, 11/11 demo-revoke, 6/6 repanel-f2-prod-interlock. Full suite 118/124 (6 pre-existing failures unchanged).",
+  "status_caveat": "ADR_015 Section 10 amendment (2026-06-23). DESIGN against TEST KEYS. Production keys PAPER + ceremony-gated. Tags per ADR_015 Section 10.7. NOT self-cleared; pending re-panel (Security + Adversary 2-of-2).",
+  "task": "ADR_015 Section 10 amendment: tenant-scoped operator enrollment + demo isolation (closes two re-panel CRITICAL/privesc defects)",
+  "adr": "ADR_015 Section 10 (2026-06-23 amendment)",
+  "authored": "2026-06-23",
+  "last_run": "2026-06-23",
+
+  "defects_closed": [
+    {
+      "id": "Defect-1",
+      "severity": "CRITICAL",
+      "name": "demo-door self-enroll",
+      "description": "POST /v1/demo/session called enrollOperator(pubkeyHex, 'demo-session') writing the ONE global enrollment record (no tenant scope, no source scope). The route is mounted unauthenticated. Any caller self-enrolled into the production-trusted set and reopened Attack A through the demo door. Worst on fresh deploy: the demo route was the only enroll path, so the attacker wins the TOFU race.",
+      "root_cause": "enrollOperator had no tenant_id parameter; enrollment was modeled as a single global act.",
+      "failing_before": "Attacker POSTs /v1/demo/session -> enrolled globally -> updateGrantPredicate on a real tenant's grant SUCCEEDS (grant updated). 0 passed, 2 failed (oa_demo_door).",
+      "green_after": "Demo enroll lands in the demo tenant (tenant:demo-{operator_oid}) with enrollment_source='demo-session'. assertEnrolledOperator requires tenant_id match AND enrollment_source!='demo-session' for non-demo tenants. Real-tenant grant update throws InvalidOperatorSignatureError. 2 passed, 0 failed (oa_demo_door)."
+    },
+    {
+      "id": "Defect-2",
+      "severity": "CRITICAL (latent cross-tenant privilege escalation)",
+      "name": "global tenant-agnostic allowlist",
+      "description": "assertEnrolledOperator took no tenant_id. The membership check was operator_oid===entry.operator_oid && status==='active'. An operator enrolled for any tenant authorized against EVERY tenant. The grant path enforced prior.tenant_id===input.tenant_id at the grant-load level (returns 'grant not found' for cross-tenant grant OIDs), but an operator enrolled for tenant-A could authorize any grant in tenant-B when the caller passes tenant-B as input.tenant_id.",
+      "root_cause": "Same as Defect 1: single global enrollment record, no tenant binding on the membership check.",
+      "failing_before": "Operator enrolled for tenant:alpha could call updateGrantPredicate with tenant_id='tenant:beta' and grant in tenant:beta -> grant updated. 0 passed, 2 failed (oa_cross_tenant second sub-case).",
+      "green_after": "assertEnrolledOperator now takes tenant_id as first arg. Step-2 membership requires entry.tenant_id===tenant_id AND (isDemoTenant||entry.enrollment_source!=='demo-session'). Cross-tenant attempt throws OperatorNotEnrolledForTenantError -> wrapped as InvalidOperatorSignatureError. 2 passed, 0 failed (oa_cross_tenant)."
+    }
+  ],
+
+  "run_evidence": [
+    {
+      "command": "npx tsx test/oa-tenant-scope.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "21 passed, 0 failed",
+      "date": "2026-06-23",
+      "note": "All Section 10.5 reject-tests GREEN: oa_demo_door, oa_cross_tenant (both sub-cases), oa_demo_source, oa_firstrun_race, oa_attack_a regression, oa_grant_attack_a regression."
+    },
+    {
+      "command": "npx tsx test/oa-operator-enrollment.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "30 passed, 0 failed",
+      "date": "2026-06-23",
+      "note": "All Section 9 vectors stay GREEN after migration. oa_replay now gets 404 (not 403) on second decide after action consumed (correct). Migrated _testEnrollOperatorForTest calls to use OP_LOCAL_TENANT."
+    },
+    {
+      "command": "npx tsx test/s1-grant-update.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "34 passed, 0 failed",
+      "date": "2026-06-23",
+      "note": "Migrated: _testEnrollOperatorForTest(pubHex, TENANT, 'first-run-local') + _testEnrollOperatorForTest(otherPubHex2, 'tenant:other', 'first-run-local')."
+    },
+    {
+      "command": "npx tsx test/local-ingest-router.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "59 passed, 0 failed",
+      "date": "2026-06-23",
+      "note": "Migrated: _testEnrollOperatorForTest(op.pubHex, OP_LOCAL_TENANT) where OP_LOCAL_TENANT=tenant:local-${op.operatorOid}."
+    },
+    {
+      "command": "npx tsx test/local-ingest-security-2-3-4.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "29 passed, 0 failed",
+      "date": "2026-06-23",
+      "note": "Migrated: same OP_LOCAL_TENANT derivation pattern."
+    },
+    {
+      "command": "npx tsx test/demo-revoke.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "11 passed, 0 failed",
+      "date": "2026-06-23",
+      "note": "demo-revoke migration: demo route enrolls with source 'demo-session' into demo tenant. Demo grant update (updateGrantPredicate via demo router) authorizes for demo tenant (tenant:demo-*) which permits demo-session entries. All cases GREEN."
+    },
+    {
+      "command": "npx tsx test/repanel-f2-prod-interlock.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "6 passed, 0 failed",
+      "date": "2026-06-23",
+      "note": "NODE_ENV=production hard-wall intact. _testEnrollOperatorForTest now takes tenant_id+source with defaults; production guard fires before any param processing."
+    },
+    {
+      "command": "npx tsx test/run-all.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "118/124 files passed, 6 FAILED (pre-existing)",
+      "date": "2026-06-23",
+      "pre_existing_failures": [
+        "test/demo-router.test.ts -- T2 grant count (quorum grant addition, pre-existing)",
+        "test/integrity.test.ts -- requires yarn build (dist/manifest.json not present)",
+        "test/s1-ofac-adapter.test.ts -- external adapter",
+        "test/s1-pip-wrapper.test.ts -- external adapter",
+        "test/s2-webhook-adapter.test.ts -- external adapter",
+        "test/sprint9.test.ts -- sprint-specific fixture"
+      ],
+      "note": "No regressions introduced by this change. All 6 failures match the pre-existing list from the prior fix round."
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "0 errors",
+      "date": "2026-06-23",
+      "note": "Clean TypeScript compilation."
+    }
+  ],
+
+  "description": "Conformance vectors for ADR_015 Section 10 amendment (2026-06-23): tenant-scoped operator enrollment and demo isolation. Closes two re-panel CRITICAL/privesc defects. DESIGN against TEST KEYS.",
+
+  "vectors": [
+    {
+      "name": "oa-demo-door-enroll-scoped-to-demo-tenant",
+      "tag": "ADR015-S10-DEMO-DOOR",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-23 (4 assertions, test/oa-tenant-scope.test.ts oa_demo_door block)",
+      "expected": "REJECT",
+      "failing_before": "Attacker POSTs /v1/demo/session -> enrollOperator wrote global record (no tenant_id) -> updateGrantPredicate on real-tenant grant SUCCEEDED. Grant updated by attacker.",
+      "description": "Defect 1 (CRITICAL): unauthenticated demo enroll must NOT create a production-trusted entry. After fix: demo route calls enrollOperator(tenant_id, pubkeyHex, 'demo-session', {source:'demo-session'}) into the demo tenant only. assertEnrolledOperator requires entry.tenant_id===target_tenant AND entry.enrollment_source!=='demo-session' for non-demo tenants. A demo-tenant-scoped demo-session entry cannot authorize a real-tenant grant.",
+      "fix": {
+        "files": [
+          "src/agp/operator-enrollment.ts",
+          "src/agp/demo-router.ts",
+          "src/agp/engine.ts"
+        ],
+        "changes": [
+          "EnrolledOperatorEntry: added tenant_id:string + extended enrollment_source to EnrollmentSource enum ('first-run-local'|'magic-link'|'demo-session')",
+          "enrollOperator: new signature enrollOperator(tenant_id, pubkeyHex, deviceLabel, opts?). Guards per-tenant for non-demo sources. Demo-session source is idempotent.",
+          "assertEnrolledOperator: new first arg tenant_id. Step-2 membership requires entry.tenant_id===tenant_id AND (isDemoTenant||entry.enrollment_source!=='demo-session').",
+          "New error: OperatorNotEnrolledForTenantError (code='operator_not_enrolled_for_tenant').",
+          "demo-router.ts line ~471: enrollOperator(tenant_id, operator_pubkey_hex, 'demo-session', {source:'demo-session'}) -- demo tenant only.",
+          "engine.ts line ~455: assertEnrolledOperator(prior.tenant_id, ...) -- passes grant's own tenant.",
+          "local-ingest-router.ts line ~754: assertEnrolledOperator(tenant:local-${action.principal_oid}, ...) -- passes action's tenant."
+        ],
+        "new_error_class": "OperatorNotEnrolledForTenantError (code='operator_not_enrolled_for_tenant')"
+      },
+      "observables": [
+        "POST /v1/demo/session with attacker key -> enrollment record has ONLY demo-tenant entry with enrollment_source='demo-session'",
+        "updateGrantPredicate on real-tenant grant using demo-enrolled key throws InvalidOperatorSignatureError",
+        "real-tenant grant is NOT updated (supersedes undefined)",
+        "enrollment record has no first-run-local entries after demo session creation"
+      ]
+    },
+    {
+      "name": "oa-cross-tenant-operator-cannot-update-other-tenant-grant",
+      "tag": "ADR015-S10-CROSS-TENANT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-23 (6 assertions, test/oa-tenant-scope.test.ts oa_cross_tenant block)",
+      "expected": "REJECT",
+      "failing_before": "Operator enrolled for tenant:alpha with correct OID format and valid signature could call updateGrantPredicate with tenant_id='tenant:beta' and update a grant in tenant:beta. Global allowlist allowed cross-tenant authorization.",
+      "description": "Defect 2 (latent cross-tenant privilege escalation): assertEnrolledOperator now takes tenant_id as first arg. Step-2 membership is per (tenant_id, operator_oid) + source check. A tenant-A operator cannot authorize against tenant-B's grants.",
+      "fix": "Same as oa-demo-door-enroll-scoped-to-demo-tenant (shared structural fix).",
+      "observables": [
+        "updateGrantPredicate with tenant_id='tenant:beta' and operator enrolled only for 'tenant:alpha' throws InvalidOperatorSignatureError",
+        "error message includes 'not_enrolled_for_tenant' or 'enrollment'",
+        "tenant-B grant is NOT updated after cross-tenant attempt"
+      ]
+    },
+    {
+      "name": "oa-demo-source-refused-on-non-demo-tenant",
+      "tag": "ADR015-S10-DEMO-SOURCE",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-23 (2 assertions, test/oa-tenant-scope.test.ts oa_demo_source block)",
+      "expected": "REJECT",
+      "failing_before": "enrollment_source='demo-session' was stored as device_label only (advisory, never read on authorization path). A demo-session entry for any tenant passed Step-2 membership check.",
+      "description": "ADR_015 Section 10.2.C: enrollment_source is now the ENFORCED field. Step-2 in assertEnrolledOperator for non-demo tenants requires entry.enrollment_source!=='demo-session'. An entry with source 'demo-session' for a real (non-demo-prefix) tenant cannot authorize a production grant or decide action.",
+      "fix": "assertEnrolledOperator Step-2: const isDemoTenant=tenant_id.startsWith('tenant:demo-'); const tenantEntry=entries.find(e=>...&&(isDemoTenant||e.enrollment_source!=='demo-session'))",
+      "observables": [
+        "_testEnrollOperatorForTest(pubHex, 'tenant:real', 'demo-session') + updateGrantPredicate on real-tenant grant throws",
+        "error class name includes 'InvalidOperator' or message includes 'not_enrolled_for_tenant'",
+        "real-tenant grant NOT updated"
+      ]
+    },
+    {
+      "name": "oa-firstrun-race-no-production-entry-from-demo-route",
+      "tag": "ADR015-S10-FIRSTRUN-RACE",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-23 (5 assertions, test/oa-tenant-scope.test.ts oa_firstrun_race block)",
+      "expected": "NO-PRODUCTION-ENTRY",
+      "failing_before": "POST /v1/demo/session called enrollOperator(pubkeyHex, 'demo-session') which wrote an entry with enrollment_source='first-run-local' (the only source in the enum) and no tenant_id field. The entry was production-trusted.",
+      "description": "ADR_015 Section 10.2.B (b3): the production-trusted first-run enrollment is reachable ONLY over loopback /local, NEVER over /v1/demo. After fix: the demo route creates ONLY a demo-tenant entry with enrollment_source='demo-session'. The enrollment record after a demo session has no first-run-local entries, all entries have tenant_id bound, and all tenant_id values start with 'tenant:demo-'.",
+      "observables": [
+        "POST /v1/demo/session creates demo session (201)",
+        "loadEnrollmentRecord() returns non-null record",
+        "All entries in enrolled_operators have enrollment_source='demo-session'",
+        "All entries have tenant_id defined (not undefined)",
+        "All entries have tenant_id starting with 'tenant:demo-'"
+      ]
+    },
+    {
+      "name": "oa-attack-a-stays-green-regression",
+      "tag": "ADR015-S10-REGRESSION-ATTACK-A",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-23 (3 assertions, test/oa-tenant-scope.test.ts oa_attack_a block; also 30/30 test/oa-operator-enrollment.test.ts)",
+      "expected": "REJECT (no regression)",
+      "description": "Section 9 CRITICAL repro oa_attack_a stays GREEN: unenrolled attacker minting a fresh keypair cannot approve a pending action via /local/decide. The tenant-scope change adds a new check AFTER the existing enrollment_missing check; an unenrolled attacker still hits 403/409 from the enrollment_missing / not_enrolled step before reaching the tenant check.",
+      "observables": [
+        "Unenrolled attacker attempting /local/decide returns 403 or 409",
+        "action still in pending store (not_released)",
+        "oa-operator-enrollment.test.ts: 30/30 GREEN (all Section 9 vectors pass)"
+      ]
+    },
+    {
+      "name": "oa-grant-attack-a-stays-green-regression",
+      "tag": "ADR015-S10-REGRESSION-GRANT-ATTACK-A",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-23 (2 assertions, test/oa-tenant-scope.test.ts oa_grant_attack_a block)",
+      "expected": "REJECT (no regression)",
+      "description": "Section 9 grant-path repro oa_grant_attack_a stays GREEN: unenrolled attacker cannot update any grant via updateGrantPredicate. The not_enrolled path still fires (entry found for any active entry -> false -> OperatorNotEnrolledError wrapping) before OperatorNotEnrolledForTenantError would fire.",
+      "observables": [
+        "updateGrantPredicate with unenrolled attacker operator_oid throws",
+        "error contains 'not_enrolled' or 'enrollment' in message or class name includes 'InvalidOperator'"
+      ]
+    },
+    {
+      "name": "demo-tenant-grants-still-update-with-demo-session-source",
+      "tag": "ADR015-S10-DEMO-SELF-AUTHORIZE",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-23 (11/11 test/demo-revoke.test.ts, includes grant-update case 6)",
+      "expected": "ALLOW (demo product functional)",
+      "description": "ADR_015 Section 10.2.B: the demo route keeps working as a product. The source clause (enrollment_source!=='demo-session') is ONLY applied for non-demo tenants (tenant_id does NOT start with 'tenant:demo-'). For demo-tenant authorizations, a demo-session entry IS permitted. This allows /v1/demo/grants/:oid/update to go through updateGrantPredicate (the production engine) with the demo operator's demo-session enrollment.",
+      "fix": "assertEnrolledOperator: const isDemoTenant=tenant_id.startsWith('tenant:demo-'); source clause skipped for demo tenants.",
+      "observables": [
+        "POST /v1/demo/session creates demo session with grants",
+        "POST /v1/demo/grants/:oid/update with demo operator -> 201 (grant updated)",
+        "POST /v1/demo/grants/:oid/revoke with demo operator -> 201 (grant revoked)",
+        "After revoke, demo execute returns no_active_grant"
+      ]
+    }
+  ],
+
+  "callers_migrated": [
+    {
+      "file": "test/s1-grant-update.test.ts",
+      "change": "_testEnrollOperatorForTest(pubHex) -> _testEnrollOperatorForTest(pubHex, TENANT, 'first-run-local'). _testEnrollOperatorForTest(otherPubHex2) -> _testEnrollOperatorForTest(otherPubHex2, 'tenant:other', 'first-run-local'). 34/34 GREEN."
+    },
+    {
+      "file": "test/oa-operator-enrollment.test.ts",
+      "change": "Added OP_LOCAL_TENANT=tenant:local-${op.operatorOid} + OP2_LOCAL_TENANT=tenant:local-${op2.operatorOid}. All _testEnrollOperatorForTest(op.pubHex) -> _testEnrollOperatorForTest(op.pubHex, OP_LOCAL_TENANT). _testEnrollOperatorForTest(op2.pubHex) -> _testEnrollOperatorForTest(op2.pubHex, OP2_LOCAL_TENANT). 30/30 GREEN."
+    },
+    {
+      "file": "test/local-ingest-router.test.ts",
+      "change": "Added OP_LOCAL_TENANT=tenant:local-${op.operatorOid}. All _testEnrollOperatorForTest(op.pubHex) -> _testEnrollOperatorForTest(op.pubHex, OP_LOCAL_TENANT). 59/59 GREEN."
+    },
+    {
+      "file": "test/local-ingest-security-2-3-4.test.ts",
+      "change": "Added OP_LOCAL_TENANT=tenant:local-${op.operatorOid}. All _testEnrollOperatorForTest(op.pubHex) -> _testEnrollOperatorForTest(op.pubHex, OP_LOCAL_TENANT). 29/29 GREEN."
+    },
+    {
+      "file": "src/agp/demo-router.ts line ~471",
+      "change": "enrollOperator(operator_pubkey_hex, 'demo-session') -> enrollOperator(tenant_id, operator_pubkey_hex, 'demo-session', {source:'demo-session'}). Demo-tenant enrollment only. 11/11 demo-revoke GREEN."
+    },
+    {
+      "file": "src/agp/engine.ts line ~455",
+      "change": "assertEnrolledOperator(input.operator_oid, ...) -> assertEnrolledOperator(prior.tenant_id, input.operator_oid, ...). Also added OperatorNotEnrolledForTenantError to catch block (mapped to InvalidOperatorSignatureError like the other enrollment errors)."
+    },
+    {
+      "file": "src/agp/local-ingest-router.ts line ~754",
+      "change": "assertEnrolledOperator(body.operator_oid, ...) -> assertEnrolledOperator(action_tenant_id, body.operator_oid, ...) where action_tenant_id=tenant:local-${storedAction.principal_oid} (or '' if no action). Added OperatorNotEnrolledForTenantError catch that returns 404 when storedAction is undefined (replay path) or 403 when action exists but operator has wrong tenant."
+    }
+  ],
+
+  "migration_notes": {
+    "legacy_entries_fail_closed": "Entries in the enrollment record lacking tenant_id are treated as not-enrolled-for-any-tenant (ADR_015 Section 10.3 fail-CLOSED). They will not pass the tenant_id===entry.tenant_id check for any tenant. Re-enrollment is required. Because v1 is TEST-keys pre-production, this is the correct migration.",
+    "production_guard_unchanged": "_testEnrollOperatorForTest NODE_ENV=production hard-wall (re-panel F2) is UNCHANGED. The new tenant_id and source parameters have default values ('tenant:test', 'first-run-local') so the production check fires before any new parameter logic. 6/6 repanel-f2-prod-interlock GREEN."
+  },
+
+  "security_controls_summary": {
+    "defect_1_demo_door": "BUILT-AND-TESTED. Demo route enrolls into demo tenant only with enrollment_source='demo-session'. assertEnrolledOperator refuses demo-session entries on non-demo-tenant paths. PARTIAL-against-test-keys.",
+    "defect_2_cross_tenant": "BUILT-AND-TESTED. assertEnrolledOperator now takes tenant_id as first arg. Membership check is per (tenant_id, operator_oid) + source check. Cross-tenant authorization is rejected with OperatorNotEnrolledForTenantError. PARTIAL-against-test-keys.",
+    "demo_product_functional": "BUILT-AND-TESTED. Demo route keeps working: demo-session entries authorize demo-tenant (tenant:demo-*) actions. Source clause is skipped for demo tenants. 11/11 demo-revoke GREEN.",
+    "no_new_primitive": "confirmed. tenant_id is an entry field, enrollment_source is an enum extension, per-tenant membership is a predicate change on the shipped record-read path. No new WIT import, no new ADR_005 field, no new receipt subtype.",
+    "panel_clearance": "NOT SELF-CLEARED. Both re-panel defects are built and pass reproduce-first test vectors. Re-panel (Security + Adversary 2-of-2) decides clearance."
+  }
+}

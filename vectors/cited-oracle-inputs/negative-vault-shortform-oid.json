@@ -1,0 +1,42 @@
+[
+  {
+    "name": "cited_oracle_inputs: REJECT vault:// source_url with shortform OID (6-hex)",
+    "kind": "cited_oracle_input_entry",
+    "expect": "invalid",
+    "expected_error_kind": "schema_error",
+    "expected_error_detail": "schema_error: source_url vault scheme OID must be full 64-hex sha256",
+    "__comment": [
+      "ARCH.1 resolution (1) per CLARIFICATIONS.md item 1:",
+      "Any vault://<bundle>/<resource>/<oid> written to a receipt MUST carry the full",
+      "64-hex sha256 OID form: oid-[a-f0-9]{64}. Shortform (here 6-hex) is rejected.",
+      "",
+      "The OID check in standaloneVerifyEntry fires BEFORE the hash-integrity check.",
+      "To keep that ordering falsifiable, value_hash here is the CORRECT hash of raw_value",
+      "(sha256:a008bf0f7d94fb0aab61b5b51dcd3e79a632d696adf380b4f1bf15a7e504e6cd),",
+      "so if the OID guard were absent the vector would pass integrity -- making the",
+      "OID guard the sole gate catching this vector.",
+      "",
+      "JCS(raw_value) = {\"list_version\":\"2026-06-17-1\",\"match\":[\"sdn:abc123hash\"],\"query\":\"Vladimir Putin\"}",
+      "sha256(JCS(raw_value)) = sha256:a008bf0f7d94fb0aab61b5b51dcd3e79a632d696adf380b4f1bf15a7e504e6cd"
+    ],
+    "entry": {
+      "subject_type": "ofac",
+      "value_hash": "sha256:a008bf0f7d94fb0aab61b5b51dcd3e79a632d696adf380b4f1bf15a7e504e6cd",
+      "raw_value": {
+        "list_version": "2026-06-17-1",
+        "match": ["sdn:abc123hash"],
+        "query": "Vladimir Putin"
+      },
+      "fetched_at": "2026-06-17T19:34:01.005Z",
+      "source_url": "vault://ofac/snapshot/oid-7f3a2e",
+      "source_cursor": "2026-06-17-1"
+    },
+    "notes": [
+      "source_url carries oid-7f3a2e (6-hex shortform). Full 64-hex sha256 is required.",
+      "The shortform tolerance window in spec Section 1.8 applies to CLI parser input only;",
+      "it never reaches a signed receipt.",
+      "value_hash is the correct hash of raw_value so the OID check is the sole failure gate.",
+      "Verifier MUST reject with schema_error before reaching hash-integrity checks."
+    ]
+  }
+]

@@ -1,0 +1,87 @@
+{
+  "protocol": "wasm-shell",
+  "version": "1",
+  "status": "PARTIAL-AGAINST-TEST-KEYS",
+  "status_runner": "cargo-test-backed (no server required) -- GREEN 2026-06-22 (4 tests in governed_action_receipt_vectors). NOT-EXECUTABLE-IN-RUNNER without the Rust toolchain + b1-harness crate built.",
+  "status_caveat": "Signed-receipt CDRO format in the b1-harness runtime (task #33). Receipts signed with TEST SHELL KEYS (ed_seed=[7..7], ml_seed=[8..8], deterministic). Production keys require the KMS ceremony (KEY_CEREMONY_RUNBOOK v3, PAPER + HUMAN-gated). Tag: PARTIAL-against-test-keys per ADR_014 Section 5. This RETIRES the stub-OID gap for governed-action receipts (invocation, result, denial). The stub OID pattern ('sha256:invocation-receipt-*', 'sha256:result-receipt-*', 'sha256:denial-receipt-*') is replaced by real hybrid-signed receipt-v2 CDROs whose OID equals sha256(canonicalize(cdro_content_core(receipt))). Cross-language verify (Rust runtime emits, TS synoi-verify verifyReceiptV2 verifies) is NOT-EXECUTABLE-IN-RUNNER in this slice (the TS verifier requires Node >= 22 and the runner cannot shell to both Rust and Node in one vector run). Intra-language verify (Rust runtime emits + Rust synoi_verify::verify_attestation_with_type verifies) is cargo-test-backed GREEN.",
+  "task": "#33",
+  "adr": "ADR_014 Section 1.6 (governed-action receipt triple), ADR_005 Section 5 step 6a/6b (invocation/result/denial receipt emission)",
+  "authored": "2026-06-22",
+  "last_run": "2026-06-22",
+  "run_evidence": {
+    "command": "cargo test --lib -p b1-harness",
+    "cwd": "synoi-gateway/runtime/b1-harness",
+    "branch": "wasm-runtime",
+    "commit": "c0f4ede",
+    "result": "14 passed, 0 failed, 4 ignored (runner-conditional), 0 measured",
+    "governed_action_receipt_vectors_result": "4 passed, 0 failed",
+    "date": "2026-06-22"
+  },
+
+  "description": "Governed-action receipt CDRO format. The b1-harness render_allow and render_deny functions now emit real hybrid-signed receipt-v2 CDROs (Ed25519 + ML-DSA-65) for governed-action.allowed and governed-action.denied events. OID = sha256(canonicalize(cdro_content_core(receipt))). Signed via the SHIPPED DSSE path (TestHybridKeyPair::sign_cdro_core, same path as carrier/genesis/disable-list fixtures). No new receipt envelope, no new WIT import, no new CDRO type (ADR_014 Section 7). Subject string (governed-action.allowed|denied) is stored as a receipt tag alongside the CDRO, not a new field on the CDRO. Receipt-v2 shape unchanged.",
+
+  "vectors": [
+    {
+      "name": "ga-receipt-invocation-is-real-signed-cdro",
+      "tag": "TASK-33-INVOCATION",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "cargo-test-backed -- GREEN 2026-06-22 (ga_receipt_invocation_is_real_signed_cdro)",
+      "expected": "PASS",
+      "description": "Invocation receipt (governed-action.allowed) is a real receipt-v2 CDRO. FAILING-BEFORE: the stub OID 'sha256:invocation-receipt-{hash}' was derived from a string hash, not a CDRO content core; no attestation field present; verify_attestation_with_type returned Reject(EnvelopeMalformed). PASSING-AFTER: (a) OID == sha256(canonicalize(cdro_content_core(receipt))); (b) verify_attestation_with_type returns Accept; (c) both Ed25519 and ML-DSA-65 sigs present; (d) OID does NOT start with 'sha256:invocation-receipt-'; (e) subject = 'governed-action.allowed'; (f) body.decision_oid cites the gate decision_oid. TEST KEYS ONLY.",
+      "observables": [
+        "oid == sha256(canonicalize(cdro_content_core(receipt)))",
+        "verify_attestation_with_type(attestation, ed_pub, ml_pub, EXPECTED_PAYLOAD_TYPE) == Accept",
+        "attestation.signatures contains alg='ed25519' and alg='ml-dsa-65'",
+        "oid does NOT start with 'sha256:invocation-receipt-'",
+        "receipt.subject == 'governed-action.allowed'",
+        "receipt.body.decision_oid == decision_oid"
+      ]
+    },
+    {
+      "name": "ga-receipt-denial-is-real-signed-cdro",
+      "tag": "TASK-33-DENIAL",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "cargo-test-backed -- GREEN 2026-06-22 (ga_receipt_denial_is_real_signed_cdro)",
+      "expected": "PASS",
+      "description": "Denial receipt (governed-action.denied) is a real receipt-v2 CDRO. FAILING-BEFORE: stub OID 'sha256:denial-receipt-{hash}' was not a CDRO; no attestation. PASSING-AFTER: OID correct, verify_attestation_with_type returns Accept, subject = 'governed-action.denied', body.axis cites the denial axis. TEST KEYS ONLY.",
+      "observables": [
+        "oid == sha256(canonicalize(cdro_content_core(receipt)))",
+        "verify_attestation_with_type returns Accept",
+        "oid does NOT start with 'sha256:denial-receipt-'",
+        "receipt.subject == 'governed-action.denied'",
+        "receipt.body.axis == axis (the gate denial axis)"
+      ]
+    },
+    {
+      "name": "ga-receipt-tampered-content-core-rejects",
+      "tag": "TASK-33-TAMPER-NEGATIVE",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "cargo-test-backed -- GREEN 2026-06-22 (ga_receipt_tampered_content_core_rejects)",
+      "expected": "PASS",
+      "description": "Negative control: flip one byte of the canonical payload in the attestation. verify_attestation_with_type MUST return Reject (NOT Accept). Proves the signature binds the content core and any tampering is detectable ('provable after' guarantee). FAILING-BEFORE: stub had no attestation at all; this test was vacuous. PASSING-AFTER: a validly-signed CDRO is produced; tampering its payload causes Ed25519 or ML-DSA-65 to reject.",
+      "observables": [
+        "verify_attestation_with_type(tampered_attestation, ed_pub, ml_pub, EXPECTED_PAYLOAD_TYPE) != Accept"
+      ]
+    },
+    {
+      "name": "ga-receipt-oid-equals-content-core-hash-not-string-hash",
+      "tag": "TASK-33-OID-STRUCTURE",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "cargo-test-backed -- GREEN 2026-06-22 (ga_receipt_oid_equals_content_core_hash_not_string_hash)",
+      "expected": "PASS",
+      "description": "Structural pin: the real CDRO OID must NOT equal the old stub literal. The old stub was sha256:invocation-receipt-{hex(sha256(decision_oid+':invocation'))} -- sha256 of a string. The new OID is sha256(canonicalize(cdro_content_core(receipt))) -- sha256 of the full canonical body. These differ structurally. FAILING-BEFORE: render_allow emitted the stub OID. PASSING-AFTER: real_oid != old_stub_oid and real_oid does not start with 'sha256:invocation-receipt-'.",
+      "observables": [
+        "real_oid != 'sha256:invocation-receipt-' + hex(sha256(decision_oid + ':invocation'))",
+        "real_oid does NOT start with 'sha256:invocation-receipt-'"
+      ]
+    }
+  ],
+
+  "cross_language_verify": {
+    "status": "SHIPPED-AGAINST-TEST-KEYS",
+    "closed_by": "governed-action-receipt-xlang.json (synoi-conformance main 16c7274)",
+    "closed_date": "2026-06-22",
+    "description": "Cross-language gap CLOSED. The Rust emit-governed-action-fixture bin (synoi-runtime-wt wasm-runtime c5d78ae) writes governed-action.allowed + governed-action.denied receipt-v2 CDROs to governed-action-receipt-xlang.json. The TS harness (test/governed-action-xlang-conformance.test.ts) calls @synoi/verify verifyReceiptV2 on both receipts with the [7,8]-seed public keys decoded from the fixture hex. Run evidence 2026-06-22: 12/12 assertions pass -- 2 positive (ACCEPT on allow, ACCEPT on deny), 1 tamper-reject control (payload-core-mismatch), 1 wrong-key-reject control. Both negative controls confirm the verifier binds content AND key. The SHIPPED @synoi/verify receipt-v2 code path was used, not a re-implementation. Intra-language Rust verify (cargo test --lib -p b1-harness) remains 14 passed, 0 failed.",
+    "note": "TAG: PARTIAL-against-test-keys. TEST KEYS ONLY. Production keys require the KMS ceremony (ceremony-gated, PAPER until ceremony is complete)."
+  }
+}

@@ -1,0 +1,660 @@
+[
+  {
+    "name": "cap_decl: well-formed",
+    "kind": "validate",
+    "target": "capability_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:capability_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "test-actor",
+      "body": {
+        "actor_type": "service",
+        "actor_id": "service-A",
+        "actor_name": "Service A",
+        "actor_version": "1.0.0",
+        "capabilities": [
+          {
+            "capability": "cap.x",
+            "safety_class": "A"
+          }
+        ]
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "cap_decl: missing body",
+    "kind": "validate",
+    "target": "capability_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:capability_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "test-actor"
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "cap_decl: wrong type field",
+    "kind": "validate",
+    "target": "capability_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:wrong_type",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "test-actor",
+      "body": {
+        "actor_type": "service",
+        "actor_id": "service-A",
+        "actor_name": "Service A",
+        "actor_version": "1.0.0",
+        "capabilities": [
+          {
+            "capability": "cap.x",
+            "safety_class": "A"
+          }
+        ]
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "cap_decl: tolerates extra unknown key",
+    "kind": "validate",
+    "target": "capability_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+      "type": "gap:capability_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "test-actor",
+      "body": {
+        "actor_type": "service",
+        "actor_id": "service-A",
+        "actor_name": "Service A",
+        "actor_version": "1.0.0",
+        "capabilities": [
+          {
+            "capability": "cap.x",
+            "safety_class": "A"
+          }
+        ]
+      },
+      "unknown_future_field": "x"
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "cap_grant: well-formed",
+    "kind": "validate",
+    "target": "capability_grant",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+      "type": "gap:capability_grant",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "grantee": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "capability_scopes": [
+          {
+            "capability": "cap.x",
+            "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "granted_at_ms": 1700000000000,
+        "expires_at_ms": null,
+        "granted_by": "op"
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "cap_grant: missing grantee",
+    "kind": "validate",
+    "target": "capability_grant",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+      "type": "gap:capability_grant",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "capability_scopes": [
+          {
+            "capability": "cap.x",
+            "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "granted_at_ms": 1700000000000,
+        "expires_at_ms": null,
+        "granted_by": "op"
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "cap_grant: wrong tenant_id type",
+    "kind": "validate",
+    "target": "capability_grant",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+      "type": "gap:capability_grant",
+      "gap_version": "1.0",
+      "tenant_id": 123,
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "grantee": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "capability_scopes": [
+          {
+            "capability": "cap.x",
+            "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "granted_at_ms": 1700000000000,
+        "expires_at_ms": null,
+        "granted_by": "op"
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "cap_grant: tolerates extra key in body",
+    "kind": "validate",
+    "target": "capability_grant",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+      "type": "gap:capability_grant",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "grantee": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "capability_scopes": [
+          {
+            "capability": "cap.x",
+            "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "granted_at_ms": 1700000000000,
+        "expires_at_ms": null,
+        "granted_by": "op",
+        "label": "x"
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "cap_inv: well-formed",
+    "kind": "validate",
+    "target": "capability_invocation",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+      "type": "gap:capability_invocation",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "caller": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test",
+          "grant_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002"
+        },
+        "capability": "cap.x",
+        "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "args": {
+          "foo": "bar"
+        },
+        "idempotency_key": "op-001",
+        "invoked_at_ms": 1700000000000
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "cap_inv: missing capability",
+    "kind": "validate",
+    "target": "capability_invocation",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+      "type": "gap:capability_invocation",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "caller": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test",
+          "grant_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002"
+        },
+        "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "args": {
+          "foo": "bar"
+        },
+        "idempotency_key": "op-001",
+        "invoked_at_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "cap_inv: wrong-type invoked_at_ms",
+    "kind": "validate",
+    "target": "capability_invocation",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+      "type": "gap:capability_invocation",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "caller": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test",
+          "grant_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002"
+        },
+        "capability": "cap.x",
+        "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "args": {
+          "foo": "bar"
+        },
+        "idempotency_key": "op-001",
+        "invoked_at_ms": "now"
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "cap_inv: tolerates extra unknown key",
+    "kind": "validate",
+    "target": "capability_invocation",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+      "type": "gap:capability_invocation",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "caller": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test",
+          "grant_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002"
+        },
+        "capability": "cap.x",
+        "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "args": {
+          "foo": "bar"
+        },
+        "idempotency_key": "op-001",
+        "invoked_at_ms": 1700000000000,
+        "sla_hint": {
+          "max_latency_ms": 500
+        }
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "wf_def: well-formed",
+    "kind": "validate",
+    "target": "workflow_definition",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+      "type": "gap:workflow_definition",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "workflow_id": "wf-1",
+        "workflow_name": "Test workflow",
+        "workflow_version": "1.0.0",
+        "trigger": {
+          "kind": "explicit"
+        },
+        "initial_stage_id": "stage:start",
+        "required_channels": [],
+        "max_total_duration_seconds": 3600,
+        "stages": [
+          {
+            "stage_id": "stage:start",
+            "terminal": true,
+            "terminal_outcome": "approved"
+          }
+        ]
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "wf_def: stages is not an array",
+    "kind": "validate",
+    "target": "workflow_definition",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+      "type": "gap:workflow_definition",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "workflow_id": "wf-1",
+        "workflow_name": "Test workflow",
+        "workflow_version": "1.0.0",
+        "trigger": {
+          "kind": "explicit"
+        },
+        "initial_stage_id": "stage:start",
+        "required_channels": [],
+        "max_total_duration_seconds": 3600,
+        "stages": "oops"
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "wf_def: missing workflow_version",
+    "kind": "validate",
+    "target": "workflow_definition",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+      "type": "gap:workflow_definition",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "workflow_id": "wf-1",
+        "workflow_name": "Test workflow",
+        "trigger": {
+          "kind": "explicit"
+        },
+        "initial_stage_id": "stage:start",
+        "required_channels": [],
+        "max_total_duration_seconds": 3600,
+        "stages": [
+          {
+            "stage_id": "stage:start",
+            "terminal": true,
+            "terminal_outcome": "approved"
+          }
+        ]
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "wf_def: tolerates extra unknown body key",
+    "kind": "validate",
+    "target": "workflow_definition",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000004",
+      "type": "gap:workflow_definition",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "workflow_id": "wf-1",
+        "workflow_name": "Test workflow",
+        "workflow_version": "1.0.0",
+        "trigger": {
+          "kind": "explicit"
+        },
+        "initial_stage_id": "stage:start",
+        "required_channels": [],
+        "max_total_duration_seconds": 3600,
+        "stages": [
+          {
+            "stage_id": "stage:start",
+            "terminal": true,
+            "terminal_outcome": "approved"
+          }
+        ],
+        "description": "desc"
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "receipt: well-formed",
+    "kind": "validate",
+    "target": "decision_receipt",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "initiator": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "status": "ok",
+        "initiated_at_ms": 1700000000000,
+        "resolved_at_ms": 1700000000005
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "receipt: missing subject_oid",
+    "kind": "validate",
+    "target": "decision_receipt",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "initiator": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "status": "ok",
+        "initiated_at_ms": 1700000000000,
+        "resolved_at_ms": 1700000000005
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "receipt: wrong status value",
+    "kind": "validate",
+    "target": "decision_receipt",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "initiator": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "status": "maybe",
+        "initiated_at_ms": 1700000000000,
+        "resolved_at_ms": 1700000000005
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "receipt: tolerates extra key",
+    "kind": "validate",
+    "target": "decision_receipt",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000005",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "agent:test",
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "initiator": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "status": "ok",
+        "initiated_at_ms": 1700000000000,
+        "resolved_at_ms": 1700000000005,
+        "note": "audit"
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "revocation: well-formed",
+    "kind": "validate",
+    "target": "revocation_event",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+      "type": "gap:revocation_event",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "target_kind": "capability_grant",
+        "target_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "reason": "rotation",
+        "required_level": 1,
+        "provisional": false,
+        "approvers": [
+          {
+            "actor_oid": "op",
+            "approved_at_ms": 1700000000000,
+            "cooling_off_satisfied": true
+          }
+        ],
+        "effective_at_ms": 1700000000000
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "revocation: bad target_kind",
+    "kind": "validate",
+    "target": "revocation_event",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+      "type": "gap:revocation_event",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "target_kind": "nonsense",
+        "target_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "reason": "rotation",
+        "required_level": 1,
+        "provisional": false,
+        "approvers": [
+          {
+            "actor_oid": "op",
+            "approved_at_ms": 1700000000000,
+            "cooling_off_satisfied": true
+          }
+        ],
+        "effective_at_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "revocation: missing reason",
+    "kind": "validate",
+    "target": "revocation_event",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+      "type": "gap:revocation_event",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "target_kind": "capability_grant",
+        "target_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "required_level": 1,
+        "provisional": false,
+        "approvers": [
+          {
+            "actor_oid": "op",
+            "approved_at_ms": 1700000000000,
+            "cooling_off_satisfied": true
+          }
+        ],
+        "effective_at_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "revocation: tolerates extra key",
+    "kind": "validate",
+    "target": "revocation_event",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000006",
+      "type": "gap:revocation_event",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "op",
+      "body": {
+        "target_kind": "capability_grant",
+        "target_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "reason": "rotation",
+        "required_level": 1,
+        "provisional": false,
+        "approvers": [
+          {
+            "actor_oid": "op",
+            "approved_at_ms": 1700000000000,
+            "cooling_off_satisfied": true
+          }
+        ],
+        "effective_at_ms": 1700000000000,
+        "attestation_url": "https://x"
+      }
+    },
+    "expected_ok": true
+  }
+]

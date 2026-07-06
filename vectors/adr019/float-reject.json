@@ -1,0 +1,131 @@
+[
+  {
+    "name": "adr019 float-reject: top-level float",
+    "kind": "canonicalize_reject",
+    "input": 3.14,
+    "expected": "reject",
+    "reason": "non-integer-number-forbidden"
+  },
+  {
+    "name": "adr019 float-reject: float in receipt body (amount as major-unit float)",
+    "kind": "canonicalize_reject",
+    "input": {
+      "type": "gap:decision_receipt",
+      "sraid_version": "2.0",
+      "gap_version": "1.0",
+      "tenant_id": "tenant-x",
+      "created_at_ms": 1720000000000,
+      "created_by": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "body": {
+        "decision": "allow",
+        "amount_minor": 1299,
+        "amount": 12.99
+      },
+      "authority": {
+        "grant_oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "allow"
+      },
+      "supersedes": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "expected": "reject",
+    "reason": "non-integer-number-forbidden"
+  },
+  {
+    "name": "adr019 float-reject: nested fractional rate",
+    "kind": "canonicalize_reject",
+    "input": {
+      "type": "gap:decision_receipt",
+      "sraid_version": "2.0",
+      "gap_version": "1.0",
+      "tenant_id": "tenant-x",
+      "created_at_ms": 1720000000000,
+      "created_by": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "body": {
+        "rate": {
+          "pct": 0.5
+        }
+      },
+      "authority": {
+        "grant_oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "allow"
+      },
+      "supersedes": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "expected": "reject",
+    "reason": "non-integer-number-forbidden"
+  },
+  {
+    "name": "adr019 float-reject: float array element",
+    "kind": "canonicalize_reject",
+    "input": {
+      "type": "gap:decision_receipt",
+      "sraid_version": "2.0",
+      "gap_version": "1.0",
+      "tenant_id": "tenant-x",
+      "created_at_ms": 1720000000000,
+      "created_by": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "body": {
+        "rates": [
+          1,
+          2,
+          3.5
+        ]
+      },
+      "authority": {
+        "grant_oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "allow"
+      },
+      "supersedes": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "expected": "reject",
+    "reason": "non-integer-number-forbidden"
+  },
+  {
+    "name": "adr019 float-reject: negative float",
+    "kind": "canonicalize_reject",
+    "input": {
+      "type": "gap:decision_receipt",
+      "sraid_version": "2.0",
+      "gap_version": "1.0",
+      "tenant_id": "tenant-x",
+      "created_at_ms": 1720000000000,
+      "created_by": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "body": {
+        "decision": "allow",
+        "amount_minor": 1299,
+        "delta": -0.25
+      },
+      "authority": {
+        "grant_oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "allow"
+      },
+      "supersedes": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "expected": "reject",
+    "reason": "non-integer-number-forbidden"
+  },
+  {
+    "name": "adr019 float-reject: exponent-form non-integer",
+    "kind": "canonicalize_reject",
+    "input": {
+      "type": "gap:decision_receipt",
+      "sraid_version": "2.0",
+      "gap_version": "1.0",
+      "tenant_id": "tenant-x",
+      "created_at_ms": 1720000000000,
+      "created_by": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "body": {
+        "decision": "allow",
+        "amount_minor": 1299,
+        "tiny": 0.002
+      },
+      "authority": {
+        "grant_oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "allow"
+      },
+      "supersedes": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "expected": "reject",
+    "reason": "non-integer-number-forbidden"
+  }
+]

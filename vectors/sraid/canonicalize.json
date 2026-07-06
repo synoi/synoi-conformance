@@ -1,0 +1,77 @@
+[
+  {
+    "name": "empty object",
+    "kind": "canonicalize",
+    "input": {},
+    "expected_canonical": "{}"
+  },
+  {
+    "name": "flat object out-of-order keys",
+    "kind": "canonicalize",
+    "input": {
+      "b": 1,
+      "a": "hi"
+    },
+    "expected_canonical": "{\"a\":\"hi\",\"b\":1}"
+  },
+  {
+    "name": "nested object",
+    "kind": "canonicalize",
+    "input": {
+      "outer": {
+        "inner": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    "expected_canonical": "{\"outer\":{\"inner\":[1,2,3]}}"
+  },
+  {
+    "name": "array of objects",
+    "kind": "canonicalize",
+    "input": [
+      {
+        "x": 1
+      },
+      {
+        "x": 2
+      }
+    ],
+    "expected_canonical": "[{\"x\":1},{\"x\":2}]"
+  },
+  {
+    "name": "integer",
+    "kind": "canonicalize",
+    "input": 42,
+    "expected_canonical": "42"
+  },
+  {
+    "name": "string with embedded quote",
+    "kind": "canonicalize",
+    "input": "has \"quote\" inside",
+    "expected_canonical": "\"has \\\"quote\\\" inside\""
+  },
+  {
+    "name": "string with unicode snowman",
+    "kind": "canonicalize",
+    "input": "snowman ☃",
+    "expected_canonical": "\"snowman ☃\""
+  },
+  {
+    "name": "mixed types",
+    "kind": "canonicalize",
+    "input": {
+      "s": "x",
+      "n": 1,
+      "b": true,
+      "nu": null,
+      "a": [
+        1,
+        2
+      ]
+    },
+    "expected_canonical": "{\"a\":[1,2],\"b\":true,\"n\":1,\"nu\":null,\"s\":\"x\"}"
+  }
+]

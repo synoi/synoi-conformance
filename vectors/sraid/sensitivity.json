@@ -1,0 +1,114 @@
+[
+  {
+    "name": "carry-forward: mix of tiers consolidates to the maximum",
+    "kind": "sensitivity",
+    "mode": "carry_forward",
+    "sources": ["s1", "s3", "s0", "s2"],
+    "expected_tier": "s3"
+  },
+  {
+    "name": "carry-forward: highest tier wins regardless of order",
+    "kind": "sensitivity",
+    "mode": "carry_forward",
+    "sources": ["s0", "s4", "s1"],
+    "expected_tier": "s4"
+  },
+  {
+    "name": "carry-forward: a summary of high inputs cannot be downgraded",
+    "kind": "sensitivity",
+    "mode": "carry_forward",
+    "sources": ["s3", "s3"],
+    "expected_tier": "s3"
+  },
+  {
+    "name": "carry-forward: undeclared/null sources do not pull the result down",
+    "kind": "sensitivity",
+    "mode": "carry_forward",
+    "sources": ["s2", null],
+    "expected_tier": "s2"
+  },
+  {
+    "name": "carry-forward: empty source set returns the floor s0",
+    "kind": "sensitivity",
+    "mode": "carry_forward",
+    "sources": [],
+    "expected_tier": "s0"
+  },
+  {
+    "name": "carry-forward: an unknown (literal-category) tier throws, never silently floors",
+    "kind": "sensitivity",
+    "mode": "carry_forward_throws",
+    "sources": ["phi"]
+  },
+  {
+    "name": "oid-binding: differing only in sensitivity yields different OIDs",
+    "kind": "sensitivity",
+    "mode": "oid_binding",
+    "a": {
+      "type": "saga:memory_record",
+      "sraid_version": "2.0",
+      "tenant_id": "acme-prod",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "body": { "summary": "consolidated note" },
+      "sensitivity": "s3"
+    },
+    "b": {
+      "type": "saga:memory_record",
+      "sraid_version": "2.0",
+      "tenant_id": "acme-prod",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "body": { "summary": "consolidated note" },
+      "sensitivity": "s1"
+    },
+    "expected_distinct": true
+  },
+  {
+    "name": "oid-binding: adding sensitivity changes the OID (cannot be silently stripped)",
+    "kind": "sensitivity",
+    "mode": "oid_binding",
+    "a": {
+      "type": "saga:memory_record",
+      "sraid_version": "2.0",
+      "tenant_id": "acme-prod",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "body": { "summary": "consolidated note" }
+    },
+    "b": {
+      "type": "saga:memory_record",
+      "sraid_version": "2.0",
+      "tenant_id": "acme-prod",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "body": { "summary": "consolidated note" },
+      "sensitivity": "s2"
+    },
+    "expected_distinct": true
+  },
+  {
+    "name": "oid-binding: identical sensitivity yields identical OIDs (stable)",
+    "kind": "sensitivity",
+    "mode": "oid_binding",
+    "a": {
+      "type": "saga:memory_record",
+      "sraid_version": "2.0",
+      "tenant_id": "acme-prod",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "body": { "summary": "consolidated note" },
+      "sensitivity": "s2"
+    },
+    "b": {
+      "type": "saga:memory_record",
+      "sraid_version": "2.0",
+      "tenant_id": "acme-prod",
+      "created_at_ms": 1716840000000,
+      "created_by": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "body": { "summary": "consolidated note" },
+      "sensitivity": "s2"
+    },
+    "expected_distinct": false
+  }
+]

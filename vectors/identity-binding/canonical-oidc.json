@@ -1,0 +1,30 @@
+[
+  {
+    "name": "oidc basic",
+    "kind": "identity_binding_canonical_oidc",
+    "note": "Caveat Wave B OIDC trust-anchor holder-consent canonical bytes. Field order is domain(oidc), actor_oid, tenant_id, issuer, oidc_subject, consent_pubkey, nonce, not_after_ms. Each field is length-prefixed LP(s)=byteLength(s)+':'+s. This is the actor's holder-of-key proof over the actor-controlled Ed25519 consent key; the trusted-issuer id_token independently vouches subject==actor.",
+    "args": ["oid:actor:1", "t1", "https://issuer.example", "sub-1", "pubk", "ibn_abc", 1700000000000],
+    "expected": "28:gap-identity-binding-oidc-v111:oid:actor:12:t122:https://issuer.example5:sub-14:pubk7:ibn_abc13:1700000000000"
+  },
+  {
+    "name": "oidc delimiter (a,bc)",
+    "kind": "identity_binding_canonical_oidc",
+    "note": "Delimiter-injection: paired with (ab,c). Length-prefixing keeps actor='a',tenant='bc' distinct from actor='ab',tenant='c'. A colon inside any field cannot forge a field boundary.",
+    "args": ["a", "bc", "i", "s", "k", "n", 1],
+    "expected": "28:gap-identity-binding-oidc-v11:a2:bc1:i1:s1:k1:n1:1"
+  },
+  {
+    "name": "oidc delimiter (ab,c)",
+    "kind": "identity_binding_canonical_oidc",
+    "note": "MUST differ byte-for-byte from (a,bc) above.",
+    "args": ["ab", "c", "i", "s", "k", "n", 1],
+    "expected": "28:gap-identity-binding-oidc-v12:ab1:c1:i1:s1:k1:n1:1"
+  },
+  {
+    "name": "oidc unicode subject",
+    "kind": "identity_binding_canonical_oidc",
+    "note": "Length prefix is measured in UTF-8 BYTES: 'subé' is 4 code points but 5 bytes, and 'oid:actor:é' is 12 bytes.",
+    "args": ["oid:actor:é", "t1", "iss", "subé", "k", "n", 42],
+    "expected": "28:gap-identity-binding-oidc-v112:oid:actor:é2:t13:iss5:subé1:k1:n2:42"
+  }
+]

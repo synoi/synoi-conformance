@@ -1,0 +1,37 @@
+[
+  {
+    "name": "zero serializes as 0",
+    "kind": "canonicalize",
+    "input": 0,
+    "expected_canonical": "0",
+    "rationale": "RFC 8785 §3.2.2.3: zero (including the -0 negative-zero form, which cannot be expressed in JSON) must produce the string '0'. JSON parsers normalize -0 to 0 when reading vectors; unit tests in the reference impl cover the JS-level -0 case directly."
+  },
+  {
+    "name": "large integer (Number.MAX_SAFE_INTEGER)",
+    "kind": "canonicalize",
+    "input": 9007199254740991,
+    "expected_canonical": "9007199254740991",
+    "rationale": "RFC 8785 §3.2.2.3: large safe integers must round-trip without scientific notation."
+  },
+  {
+    "name": "negative integer",
+    "kind": "canonicalize",
+    "input": -42,
+    "expected_canonical": "-42",
+    "rationale": "Negative integers must serialize with leading minus sign."
+  },
+  {
+    "name": "unicode key ordering: latin extended before ASCII z",
+    "kind": "canonicalize",
+    "input": { "é": 1, "z": 2, "a": 3 },
+    "expected_canonical": "{\"a\":3,\"z\":2,\"é\":1}",
+    "rationale": "RFC 8785 §3.2.3: keys are sorted by UTF-16 code unit value. 'a'=U+0061(97), 'z'=U+007A(122), 'é'=U+00E9(233). So order is a, z, é."
+  },
+  {
+    "name": "emoji key sorts after ASCII",
+    "kind": "canonicalize",
+    "input": { "😀": 1, "a": 2 },
+    "expected_canonical": "{\"a\":2,\"😀\":1}",
+    "rationale": "RFC 8785 §3.2.3: emoji U+1F600 encodes as surrogate pair (U+D83D, U+DE00); both code units (55357, 56832) are greater than ASCII 'a' (97), so emoji key sorts after 'a'."
+  }
+]
