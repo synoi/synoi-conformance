@@ -1,0 +1,18 @@
+=== fabric-crossenv: cross-environment, cross-implementation chain verify ===
+
+R1 (game, Runtime A) oid = sha256:3328b3fcf44ae01f04b9fce0980dc8196f26a3aa830f4d89e50aba0f362bc63f
+R2 (work, Runtime B) oid = sha256:bbecaeb602f4df68a5949b78fc847158ff6dff58a17d3bad2ffc6957a90127de
+R2.prev                  = sha256:3328b3fcf44ae01f04b9fce0980dc8196f26a3aa830f4d89e50aba0f362bc63f
+
+PASS  bundle-valid
+PASS  r1-verifies-both-algs
+PASS  r2-verifies-both-algs
+PASS  r1-and-r2-different-signer-keys
+PASS  chain-linked-r2-prev-equals-r1-oid
+PASS  chain-crosses-game-and-work-environments
+
+PASS  tamper-r1-payload-byte-flip-rejected
+PASS  tamper-r1-signature-invalid-not-vacuously-skipped
+PASS  tamper-r2-body-field-edit-without-resign-rejected
+
+--- 9 passed, 0 failed ---

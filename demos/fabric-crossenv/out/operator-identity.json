@@ -1,0 +1,9 @@
+{
+  "oid": "sha256:89811c6518c1ebafd361c44cf6ee69e733d97b6fe30555c37d04beada5f004bb",
+  "descriptor": {
+    "type": "sraid:operator_identity",
+    "sraid_version": "2.0",
+    "label": "demo-operator-crossenv-proof",
+    "note": "minimal proof identity descriptor, not a resolvable production OID"
+  }
+}
