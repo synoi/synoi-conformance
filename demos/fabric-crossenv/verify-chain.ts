@@ -2,8 +2,9 @@
 //
 // Standalone OFFLINE chain-walk verifier. Imports the SHIPPED
 // @synoi/verify-core bundle verifier (verifyEvidenceBundle) -- not a
-// reimplementation -- and runs it against R1 (Runtime A, game) + R2
-// (Runtime B, work) assembled into one evidence bundle. Asserts:
+// reimplementation -- and runs it against R1 (Runtime A, Rust, real binary)
+// + R2 (Runtime B, TypeScript, work) assembled into one evidence bundle.
+// Asserts:
 //
 //   1. The bundle verifies (both Ed25519 AND ML-DSA-65, AND-enforced, for
 //      EACH receipt, under each receipt's OWN signer key).
@@ -46,7 +47,8 @@ const r2 = readJson<Record<string, unknown>>('r2.json')
 const keyA = readJson<PublicKeyBundle>('runtime-a-keys.pub.json')
 const keyB = readJson<PublicKeyBundle>('runtime-b-keys.pub.json')
 
-const TENANT_ID = 'demo-fabric-crossenv'
+// Pinned to R1's fixed tenant_id (the Rust fixture is not parameterizable).
+const TENANT_ID = 'xlang-test'
 
 let passed = 0
 let failed = 0
@@ -77,7 +79,8 @@ function buildBundle(receipts: Record<string, unknown>[]): EvidenceBundle {
       truncated: false,
       body_filtered_omission: false,
       note:
-        'minimal proof bundle: two independent non-gateway runtimes, one operator identity, ' +
+        'minimal proof bundle: two independent, cross-language, non-gateway runtimes (Rust + ' +
+        'TypeScript), one operator identity carried by R2 plus the R2.prev link to R1, ' +
         'not a production evidence export, not legal or regulatory evidence',
     },
   }
@@ -101,10 +104,10 @@ function buildBundle(receipts: Record<string, unknown>[]): EvidenceBundle {
   return { ...base, manifest } as EvidenceBundle
 }
 
-process.stdout.write('=== fabric-crossenv: cross-environment, cross-implementation chain verify ===\n\n')
-process.stdout.write(`R1 (game, Runtime A) oid = ${String(r1.oid)}\n`)
-process.stdout.write(`R2 (work, Runtime B) oid = ${String(r2.oid)}\n`)
-process.stdout.write(`R2.prev                  = ${String((r2 as { prev?: unknown }).prev)}\n\n`)
+process.stdout.write('=== fabric-crossenv: cross-language, cross-implementation chain verify ===\n\n')
+process.stdout.write(`R1 (Rust, Runtime A)   oid = ${String(r1.oid)}  subject=${String(r1.subject)}\n`)
+process.stdout.write(`R2 (TypeScript, Runtime B) oid = ${String(r2.oid)}\n`)
+process.stdout.write(`R2.prev                    = ${String((r2 as { prev?: unknown }).prev)}\n\n`)
 
 // ── 1 + 2: positive chain verify ────────────────────────────────────────────
 const bundle = buildBundle([r1, r2])
@@ -137,10 +140,24 @@ ok(
   `r2.prev=${String((r2 as { prev?: unknown }).prev)} r1.oid=${String(r1.oid)}`,
 )
 ok(
-  'chain-crosses-game-and-work-environments',
-  (r1 as { body?: { environment?: unknown } }).body?.environment === 'game' &&
-    (r2 as { body?: { environment?: unknown } }).body?.environment === 'work',
-  `r1.env=${(r1 as { body?: { environment?: unknown } }).body?.environment} r2.env=${(r2 as { body?: { environment?: unknown } }).body?.environment}`,
+  'chain-crosses-two-distinct-action-classes',
+  // R1 is the FIXED Rust fixture (subject "governed-action.allowed",
+  // body.action_kind "render-panel") -- used verbatim, not relabeled as a
+  // game action. R2 is a work action (calendar.write). The two receipts
+  // are from genuinely different action classes AND different runtimes.
+  r1.subject === 'governed-action.allowed' &&
+    (r1 as { body?: { action_kind?: unknown } }).body?.action_kind === 'render-panel' &&
+    (r2 as { body?: { action_class?: unknown } }).body?.action_class === 'calendar.write',
+  `r1.subject=${String(r1.subject)} r1.action_kind=${(r1 as { body?: { action_kind?: unknown } }).body?.action_kind} ` +
+    `r2.action_class=${(r2 as { body?: { action_class?: unknown } }).body?.action_class}`,
+)
+const provenance = readJson<{ binary?: unknown; fixture_tag?: unknown }>('runtime-a-provenance.json')
+ok(
+  'chain-crosses-two-languages',
+  provenance.fixture_tag === 'PARTIAL-against-test-keys' &&
+    typeof provenance.binary === 'string' &&
+    (provenance.binary as string).includes('emit-governed-action-fixture'),
+  `R1 provenance = ${JSON.stringify(provenance)}; R2 signed in-process by this TypeScript script`,
 )
 
 process.stdout.write('\n')
