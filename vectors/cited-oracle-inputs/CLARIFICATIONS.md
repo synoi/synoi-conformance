@@ -3,7 +3,7 @@
 **Date:** 2026-06-18
 **Authority:** Architect, per S1.12 Tester ambiguity routing.
 **Binds:** Builder C3 through C10, Tester, Auditor.
-**Source spec:** `synoi-brain/libraries/v3/DEMO_PREWORK_SCHEMAS_2026-06-17.md` Section 6 (amendment block).
+**Source spec:** internal schema spec, Section 6 (amendment block).
 
 This file pins the resolved forms for four ambiguities surfaced against the human-authored seed vectors. The amendment block in the spec is the authoritative text; this file is the operational restatement for Builder and Tester.
 

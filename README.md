@@ -2,7 +2,7 @@
 
 **Apache 2.0** conformance test suite for SynOI's open protocols. The spec made executable.
 
-Per `synoi-brain/libraries/v1/OPEN_VS_PROPRIETARY.md`, every open protocol gets a conformance test suite. Vendors, federation peers, third-party gateways: run this against your implementation and prove byte-level compatibility with the reference.
+Every open protocol SynOI ships gets a conformance test suite. Vendors, federation peers, third-party gateways: run this against your implementation and prove byte-level compatibility with the reference.
 
 ## Install
 

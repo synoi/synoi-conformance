@@ -18,7 +18,7 @@
  *
  * Usage:
  *   node overclaim-lint.cjs [dir-or-file ...]
- *   node overclaim-lint.cjs  (defaults to synoi-brain/libraries/v2)
+ *   node overclaim-lint.cjs  (defaults to this repo's own docs)
  *
  * Zero external dependencies.
  */
@@ -192,8 +192,6 @@ function collectMarkdown(target, results) {
 
 function resolveTargets(args) {
   if (args.length === 0) {
-    const defaultDir = path.resolve(__dirname, '..', '..', '..', 'synoi-brain', 'libraries', 'v2');
-    if (fs.existsSync(defaultDir)) return [defaultDir];
     return [path.resolve(__dirname, '..', '..')];
   }
   return args.map((a) => path.resolve(a));

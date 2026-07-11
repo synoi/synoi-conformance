@@ -19,30 +19,13 @@ jobs:
         with:
           path: synoi-conformance
 
-      - name: Checkout brain docs
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/synoi-brain
-          path: synoi-brain
-          # Use default GITHUB_TOKEN read access; brain is private.
-          # If the runner cannot read the sibling repo, the linter
-          # falls back to scanning conformance docs only.
-          token: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      - name: Run overclaim linter (brain/libraries/v2)
-        run: |
-          if [ -d synoi-brain/libraries/v2 ]; then
-            node synoi-conformance/tools/overclaim-linter/overclaim-lint.cjs synoi-brain/libraries/v2
-          else
-            echo "synoi-brain not available; scanning conformance docs"
-            node synoi-conformance/tools/overclaim-linter/overclaim-lint.cjs synoi-conformance
-          fi
+      - name: Run overclaim linter
+        run: node synoi-conformance/tools/overclaim-linter/overclaim-lint.cjs synoi-conformance
 
       - name: Run linter self-test
         run: node synoi-conformance/tools/overclaim-linter/overclaim-lint.test.cjs
