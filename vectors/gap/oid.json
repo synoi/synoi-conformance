@@ -1,0 +1,147 @@
+[
+  {
+    "name": "capability_declaration small",
+    "kind": "oid",
+    "input": {
+      "type": "gap:capability_declaration",
+      "tenant_id": "t1",
+      "created_at_ms": 1700000000000,
+      "body": {
+        "actor_type": "service",
+        "actor_id": "service-A",
+        "actor_name": "Service A",
+        "actor_version": "1.0.0",
+        "capabilities": [
+          {
+            "capability": "cap.x",
+            "safety_class": "A"
+          }
+        ]
+      }
+    },
+    "expected_oid": "sha256:131e83bf8e434cbfde929c41d80e44004928d6e05f06c73cdc5c67939433f84a"
+  },
+  {
+    "name": "capability_grant small",
+    "kind": "oid",
+    "input": {
+      "type": "gap:capability_grant",
+      "tenant_id": "t1",
+      "created_at_ms": 1700000000000,
+      "body": {
+        "grantee": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "capability_scopes": [
+          {
+            "capability": "cap.x",
+            "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001"
+          }
+        ],
+        "granted_at_ms": 1700000000000,
+        "expires_at_ms": null,
+        "granted_by": "op"
+      }
+    },
+    "expected_oid": "sha256:153e77b7b5f8e6230442561fb1a13b63afb4706f71a95a013acfa14cd08f9df2"
+  },
+  {
+    "name": "capability_invocation small",
+    "kind": "oid",
+    "input": {
+      "type": "gap:capability_invocation",
+      "tenant_id": "t1",
+      "created_at_ms": 1700000000000,
+      "body": {
+        "caller": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test",
+          "grant_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002"
+        },
+        "capability": "cap.x",
+        "capability_declaration_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000001",
+        "args": {
+          "foo": "bar"
+        },
+        "idempotency_key": "op-001",
+        "invoked_at_ms": 1700000000000
+      }
+    },
+    "expected_oid": "sha256:381103318e808ccf4afd50aa976e1b3296c7b166b50e7faec8de6c1257bab497"
+  },
+  {
+    "name": "workflow_definition small",
+    "kind": "oid",
+    "input": {
+      "type": "gap:workflow_definition",
+      "tenant_id": "t1",
+      "created_at_ms": 1700000000000,
+      "body": {
+        "workflow_id": "wf-1",
+        "workflow_name": "Test workflow",
+        "workflow_version": "1.0.0",
+        "trigger": {
+          "kind": "explicit"
+        },
+        "initial_stage_id": "stage:start",
+        "required_channels": [],
+        "max_total_duration_seconds": 3600,
+        "stages": [
+          {
+            "stage_id": "stage:start",
+            "terminal": true,
+            "terminal_outcome": "approved"
+          }
+        ]
+      }
+    },
+    "expected_oid": "sha256:799e2aa554bdcc750ebe35a7db51acb584157406201a40eb481dceb6a73b0c8c"
+  },
+  {
+    "name": "decision_receipt small",
+    "kind": "oid",
+    "input": {
+      "type": "gap:decision_receipt",
+      "tenant_id": "t1",
+      "created_at_ms": 1700000000000,
+      "body": {
+        "subject_kind": "capability_invocation",
+        "subject_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000003",
+        "initiator": {
+          "actor_type": "agent",
+          "actor_oid": "agent:test"
+        },
+        "status": "ok",
+        "initiated_at_ms": 1700000000000,
+        "resolved_at_ms": 1700000000005
+      }
+    },
+    "expected_oid": "sha256:63ae90b676506d7bac1825cb0f4c4f18f61f1e027e9a8593f612e2526b42e530"
+  },
+  {
+    "name": "revocation_event small",
+    "kind": "oid",
+    "input": {
+      "type": "gap:revocation_event",
+      "tenant_id": "t1",
+      "created_at_ms": 1700000000000,
+      "body": {
+        "target_kind": "capability_grant",
+        "target_oid": "sha256:0000000000000000000000000000000000000000000000000000000000000002",
+        "reason": "rotation",
+        "required_level": 1,
+        "provisional": false,
+        "approvers": [
+          {
+            "actor_oid": "op",
+            "approved_at_ms": 1700000000000,
+            "cooling_off_satisfied": true
+          }
+        ],
+        "effective_at_ms": 1700000000000
+      }
+    },
+    "expected_oid": "sha256:a62400c04791c83e59058a3570e67ac8fd47d368dd1fd17484762a3082a4bd40"
+  }
+]

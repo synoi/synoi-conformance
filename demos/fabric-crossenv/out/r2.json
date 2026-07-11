@@ -1,0 +1,38 @@
+{
+  "type": "gap:decision_receipt",
+  "sraid_version": "2.0",
+  "tenant_id": "xlang-test",
+  "created_at_ms": 1783544830217,
+  "created_by": "sha256:89811c6518c1ebafd361c44cf6ee69e733d97b6fe30555c37d04beada5f004bb",
+  "prev": "sha256:4cd6c7591a4625585656de0302278ee6603752164ef330ca88902cb34a86c137",
+  "body": {
+    "status": "ok",
+    "decision": "allow",
+    "subject_oid": "sha256:24915f79d6cb042afa9ec39e9faaef0e4415f05977635ef88c40d2b1f11dedd2",
+    "action_class": "calendar.write",
+    "environment": "work",
+    "runtime_label": "runtime-b-work (standalone, non-gateway)"
+  },
+  "authority": {
+    "decision": "allow",
+    "subject_oid": "sha256:89811c6518c1ebafd361c44cf6ee69e733d97b6fe30555c37d04beada5f004bb",
+    "rule_id": "demo.work.calendar.auto_allow_owned_calendar"
+  },
+  "oid": "sha256:9275bbc48d138ece3e312d75c7537a24473e094863ea148847948e8e51f173a5",
+  "attestation": {
+    "payloadType": "application/vnd.synoi.gap+json",
+    "payload": "{\"authority\":{\"decision\":\"allow\",\"rule_id\":\"demo.work.calendar.auto_allow_owned_calendar\",\"subject_oid\":\"sha256:89811c6518c1ebafd361c44cf6ee69e733d97b6fe30555c37d04beada5f004bb\"},\"body\":{\"action_class\":\"calendar.write\",\"decision\":\"allow\",\"environment\":\"work\",\"runtime_label\":\"runtime-b-work (standalone, non-gateway)\",\"status\":\"ok\",\"subject_oid\":\"sha256:24915f79d6cb042afa9ec39e9faaef0e4415f05977635ef88c40d2b1f11dedd2\"},\"created_at_ms\":1783544830217,\"created_by\":\"sha256:89811c6518c1ebafd361c44cf6ee69e733d97b6fe30555c37d04beada5f004bb\",\"prev\":\"sha256:4cd6c7591a4625585656de0302278ee6603752164ef330ca88902cb34a86c137\",\"sraid_version\":\"2.0\",\"tenant_id\":\"xlang-test\",\"type\":\"gap:decision_receipt\"}",
+    "signatures": [
+      {
+        "alg": "ed25519",
+        "sig": "bQlZSW/He/BCurgrZZVg/BVcOpz3Miz3UvDkKfD/KcOHjPYYFWDTYhopqzB1SY+YmRKCbH4BbSD7ZJ2NKWSwDQ==",
+        "keyid": "runtime-b-work-demo-key-v1"
+      },
+      {
+        "alg": "ml-dsa-65",
+        "sig": "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",
+        "keyid": "runtime-b-work-demo-key-v1"
+      }
+    ]
+  }
+}

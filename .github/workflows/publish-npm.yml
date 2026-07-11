@@ -1,0 +1,106 @@
+name: Publish @synoi/conformance (npm)
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version to publish (e.g. v0.1.0). Must already be tagged.'
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout synoi-conformance
+        uses: actions/checkout@v4
+        with:
+          path: synoi-conformance
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Checkout synoi-sraid
+        uses: actions/checkout@v4
+        with:
+          repository: synoi/synoi-sraid
+          path: synoi-sraid
+
+      - name: Checkout synoi-agp-types
+        uses: actions/checkout@v4
+        with:
+          repository: synoi/synoi-agp-types
+          path: synoi-agp-types
+
+      - name: Checkout synoi-oid-resolver
+        uses: actions/checkout@v4
+        with:
+          repository: synoi/synoi-oid-resolver
+          path: synoi-oid-resolver
+
+      - name: Checkout synoi-broker
+        uses: actions/checkout@v4
+        with:
+          repository: synoi/synoi-broker
+          path: synoi-broker
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: |
+            synoi-conformance/package-lock.json
+            synoi-sraid/package-lock.json
+            synoi-agp-types/package-lock.json
+
+      - name: Install + build deps
+        run: |
+          cd synoi-sraid          && npm ci && npm run build
+          cd ../synoi-agp-types  && npm ci && npm run build
+          cd ../synoi-oid-resolver && npm ci && (npm run build 2>/dev/null || true)
+          cd ../synoi-broker      && npm ci && npm run build
+
+      - name: Install synoi-conformance
+        working-directory: synoi-conformance
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: synoi-conformance
+        run: npm run typecheck
+
+      - name: Test
+        working-directory: synoi-conformance
+        run: npm test
+
+      - name: Build
+        working-directory: synoi-conformance
+        run: npm run build
+
+      - name: Check version matches tag
+        working-directory: synoi-conformance
+        run: |
+          TAG="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG_VERSION" ]; then
+            echo "::error::Tag $TAG does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Publish to npm
+        working-directory: synoi-conformance
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        working-directory: synoi-conformance
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          echo "## Published @synoi/conformance@${PKG_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "- COF, AGP, OID Resolver, Inference Broker conformance vectors" >> $GITHUB_STEP_SUMMARY
+          echo "- \`npm install @synoi/conformance\`" >> $GITHUB_STEP_SUMMARY

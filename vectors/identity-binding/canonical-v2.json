@@ -1,0 +1,44 @@
+[
+  {
+    "name": "v2 basic",
+    "kind": "identity_binding_canonical_v2",
+    "note": "Field order is domain, actor_oid, tenant_id, credential_identifier, nonce, not_after_ms. Each field is length-prefixed LP(s)=byteLength(s)+':'+s. not_after_ms is its decimal string.",
+    "args": ["oid:actor:1", "t1", "cred-1", "ibn_abc", 1700000000000],
+    "expected": "23:gap-identity-binding-v211:oid:actor:12:t16:cred-17:ibn_abc13:1700000000000"
+  },
+  {
+    "name": "v2 delimiter-injection (a,bc)",
+    "kind": "identity_binding_canonical_v2",
+    "note": "DEFECT 4: paired with (ab,c). A naive ':'-join would make actor='a',tenant='bc' collide with actor='ab',tenant='c'. Length-prefixing keeps them distinct.",
+    "args": ["a", "bc", "x", "n", 1],
+    "expected": "23:gap-identity-binding-v21:a2:bc1:x1:n1:1"
+  },
+  {
+    "name": "v2 delimiter-injection (ab,c)",
+    "kind": "identity_binding_canonical_v2",
+    "note": "DEFECT 4: MUST differ byte-for-byte from (a,bc) above.",
+    "args": ["ab", "c", "x", "n", 1],
+    "expected": "23:gap-identity-binding-v22:ab1:c1:x1:n1:1"
+  },
+  {
+    "name": "v2 colon-in-cred",
+    "kind": "identity_binding_canonical_v2",
+    "note": "DEFECT 4: a ':' inside credential_identifier is just value bytes (already counted); it cannot forge a field boundary. Paired with colon-in-tenant.",
+    "args": ["actor", "tenant", "a:b", "n", 1],
+    "expected": "23:gap-identity-binding-v25:actor6:tenant3:a:b1:n1:1"
+  },
+  {
+    "name": "v2 colon-in-tenant",
+    "kind": "identity_binding_canonical_v2",
+    "note": "DEFECT 4: MUST differ byte-for-byte from colon-in-cred above.",
+    "args": ["actor", "tenant:a", "b", "n", 1],
+    "expected": "23:gap-identity-binding-v25:actor8:tenant:a1:b1:n1:1"
+  },
+  {
+    "name": "v2 unicode field",
+    "kind": "identity_binding_canonical_v2",
+    "note": "Length prefix is measured in UTF-8 BYTES, not code points: 'oid:actor:é' is 11 code points but 12 bytes, so the prefix is 12.",
+    "args": ["oid:actor:é", "t1", "cred", "n", 42],
+    "expected": "23:gap-identity-binding-v212:oid:actor:é2:t14:cred1:n2:42"
+  }
+]

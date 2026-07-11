@@ -1,0 +1,37 @@
+[
+  {
+    "name": "NaN is rejected",
+    "kind": "canonicalize_reject",
+    "input_description": "NaN",
+    "js_eval": "NaN",
+    "rationale": "RFC 8785 §3.2.2.3: NaN is not a JSON value. A conformant RFC 8785 implementation MUST reject it rather than coercing to null."
+  },
+  {
+    "name": "positive Infinity is rejected",
+    "kind": "canonicalize_reject",
+    "input_description": "Infinity",
+    "js_eval": "Infinity",
+    "rationale": "RFC 8785 §3.2.2.3: Infinity is not a JSON value. A conformant RFC 8785 implementation MUST reject it rather than coercing to null."
+  },
+  {
+    "name": "negative Infinity is rejected",
+    "kind": "canonicalize_reject",
+    "input_description": "-Infinity",
+    "js_eval": "-Infinity",
+    "rationale": "RFC 8785 §3.2.2.3: Negative Infinity is not a JSON value. A conformant RFC 8785 implementation MUST reject it rather than coercing to null."
+  },
+  {
+    "name": "fractional double is rejected (ADR_019 number rule)",
+    "kind": "canonicalize_reject",
+    "input_description": "3.14",
+    "js_eval": "3.14",
+    "rationale": "ADR_019 decision 2: a number is legal iff it is a finite INTEGER. 3.14 is a valid JSON value but the SynOI number rule forbids non-integer numbers before hashing (money is integer minor units). A conformant impl MUST reject it, not canonicalize it. This replaces the pre-ADR_019 'fractional double' happy-path vector."
+  },
+  {
+    "name": "small float in exponential notation is rejected (ADR_019 number rule)",
+    "kind": "canonicalize_reject",
+    "input_description": "1e-10",
+    "js_eval": "1e-10",
+    "rationale": "ADR_019 decision 2: non-integer numbers are forbidden regardless of notation. 1e-10 is a finite non-integer and MUST be rejected. This replaces the pre-ADR_019 'small float uses exponential notation' happy-path vector in canonicalize-edge.json."
+  }
+]

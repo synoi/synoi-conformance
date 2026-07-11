@@ -1,0 +1,227 @@
+[
+  {
+    "__comment": [
+      "TST.2 / ARCH.1 Resolution 4 -- source_cursor render contract.",
+      "",
+      "These vectors carry render_contract annotation metadata.",
+      "The C10 verifier render test (synoi-verify/test/source-cursor-render.test.ts)",
+      "reads the render_contract block and asserts the rendered HTML matches.",
+      "",
+      "Render label rules (locked English per CLARIFICATIONS.md item 4):",
+      "  OFAC subject_type: 'Feed snapshot: <source_cursor>'",
+      "  All other subject_types: 'Feed cursor: <source_cursor>'",
+      "",
+      "Forbidden labels (any of these in rendered HTML = block ship):",
+      "  'cache cursor'",
+      "  'cache-cursor citation'",
+      "  'fresh as of <source_cursor>'",
+      "  'stale by <x>'",
+      "  'snapshot freshness'",
+      "  'Cache cursor'",
+      "  'Pattern 13 cursor'",
+      "",
+      "Disclosure (mandatory when both feed_claimed_at AND source_cursor present):",
+      "  'These fields identify which upstream snapshot the gate read.'",
+      "  'They do not assert freshness; freshness primitive is not yet shipped.'",
+      "",
+      "Falsifiability: change the OFAC render label to 'Cache cursor: <source_cursor>'",
+      "or 'Feed cache: <source_cursor>'. The render_contract assertion fails with",
+      "  expected_label_contains mismatch. Removing source_cursor from a valid OFAC entry",
+      "  and re-running causes the render_contract required_when_source_cursor check to fail.",
+      "",
+      "Spec reference: DEMO_PREWORK_SCHEMAS_2026-06-17.md Section 1.5 + Section 1.6.",
+      "CLARIFICATIONS.md item 4 (Section 4 of this file).",
+      "Builder gate: C10 verifier UI DoD."
+    ],
+    "name": "source_cursor render: OFAC entry with source_cursor must render as 'Feed snapshot'",
+    "kind": "cited_oracle_input_entry",
+    "expect": "valid",
+    "entry": {
+      "subject_type": "ofac",
+      "value_hash": "sha256:a008bf0f7d94fb0aab61b5b51dcd3e79a632d696adf380b4f1bf15a7e504e6cd",
+      "raw_value": {
+        "list_version": "2026-06-17-1",
+        "match": ["sdn:abc123hash"],
+        "query": "Vladimir Putin"
+      },
+      "fetched_at": "2026-06-17T19:34:01.005Z",
+      "source_url": "vault://ofac/snapshot/oid-ab17648aecb55016772715cfcec685934d601b009281b9c6eaf9792709defef7",
+      "source_cursor": "2026-06-17-1",
+      "feed_claimed_at": "2026-06-17T19:00:00.000Z"
+    },
+    "render_contract": {
+      "source_cursor_value": "2026-06-17-1",
+      "feed_claimed_at_present": true,
+      "expected_label_contains": "Feed snapshot",
+      "expected_label_full": "Feed snapshot: 2026-06-17-1",
+      "forbidden_label_substrings": [
+        "cache cursor",
+        "cache-cursor",
+        "Cache cursor",
+        "Pattern 13",
+        "snapshot freshness",
+        "fresh as of",
+        "stale by"
+      ],
+      "disclosure_required": true,
+      "disclosure_must_contain": [
+        "These fields identify which upstream snapshot the gate read",
+        "do not assert freshness"
+      ],
+      "notes": [
+        "subject_type=ofac triggers the 'Feed snapshot' label (not 'Feed cursor').",
+        "feed_claimed_at and source_cursor both present: disclosure paragraph required.",
+        "The disclosure must explicitly disclaim freshness assertion.",
+        "Forbidden label check applies to the full rendered HTML text layer."
+      ]
+    },
+    "notes": [
+      "source_cursor carries the OFAC list_version: informational feed version identifier.",
+      "source_cursor is NOT the pattern-13 cache-cursor primitive (still PAPER as of 2026-06-17).",
+      "feed_claimed_at present: disclosure paragraph mandatory in rendered output.",
+      "value_hash verified: sha256(JCS({list_version,match,query})) = a008bf0f..."
+    ]
+  },
+  {
+    "name": "source_cursor render: non-OFAC entry with source_cursor must render as 'Feed cursor'",
+    "kind": "cited_oracle_input_entry",
+    "expect": "valid",
+    "entry": {
+      "subject_type": "weather",
+      "value_hash": "sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a",
+      "raw_value": { "observed_at": "2026-06-17T19:31:00.000Z", "temp_f": 78 },
+      "fetched_at": "2026-06-17T19:32:18.412Z",
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045",
+      "feed_claimed_at": "2026-06-17T19:31:00.000Z",
+      "source_cursor": "2026-06-17-1"
+    },
+    "render_contract": {
+      "source_cursor_value": "2026-06-17-1",
+      "feed_claimed_at_present": true,
+      "expected_label_contains": "Feed cursor",
+      "expected_label_full": "Feed cursor: 2026-06-17-1",
+      "forbidden_label_substrings": [
+        "cache cursor",
+        "cache-cursor",
+        "Cache cursor",
+        "Pattern 13",
+        "Feed snapshot",
+        "snapshot freshness",
+        "fresh as of",
+        "stale by"
+      ],
+      "disclosure_required": true,
+      "disclosure_must_contain": [
+        "These fields identify which upstream snapshot the gate read",
+        "do not assert freshness"
+      ],
+      "notes": [
+        "subject_type=weather: label is 'Feed cursor', NOT 'Feed snapshot'.",
+        "The 'Feed snapshot' label is reserved exclusively for subject_type=ofac.",
+        "Forbidden list includes 'Feed snapshot' here because this is a non-OFAC type.",
+        "disclosure still required: both feed_claimed_at and source_cursor are present."
+      ]
+    },
+    "notes": [
+      "source_cursor on a weather entry: informational only; no freshness guarantee.",
+      "This distinguishes the OFAC 'Feed snapshot' label from the generic 'Feed cursor' label.",
+      "value_hash verified: sha256(JCS({observed_at,temp_f})) = 7c3ad7bd..."
+    ]
+  },
+  {
+    "name": "source_cursor render: ARCH.1 res4 -- verifier output must never contain the word 'independent'",
+    "kind": "cited_oracle_input_entry",
+    "expect": "valid",
+    "__comment": [
+      "ARCH.1 resolution (4) per CLARIFICATIONS.md item 4 (second part):",
+      "The word 'independent' in verifier-rendered HTML would overclaim that the cited oracle",
+      "inputs constitute independent verification of the AI agent's decision. They do not;",
+      "they are cited inputs the gate read -- the agent's reasoning is not independently verified.",
+      "",
+      "This vector's render_contract asserts that any subject_type (here: weather) MUST NOT",
+      "produce the word 'independent' anywhere in the rendered verifier HTML.",
+      "",
+      "Falsifiability: add 'independently verified by oracle' to the verifier output template.",
+      "  The forbidden_label_substrings check fires: 'independent' found in rendered output.",
+      "  The vector fails with the correct reason: overclaim on independence.",
+      "",
+      "This vector is the snapshot test for ARCH.1 res 4 compliance across all subject_types.",
+      "The entry below is a minimal valid weather entry (same as valid.json baseline).",
+      "The only assertion that matters here is the render_contract.forbidden_label_substrings."
+    ],
+    "entry": {
+      "subject_type": "weather",
+      "value_hash": "sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a",
+      "raw_value": { "observed_at": "2026-06-17T19:31:00.000Z", "temp_f": 78 },
+      "fetched_at": "2026-06-17T19:32:18.412Z",
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045"
+    },
+    "render_contract": {
+      "source_cursor_value": null,
+      "feed_claimed_at_present": false,
+      "expected_label_contains": null,
+      "cursor_label_must_be_absent": true,
+      "forbidden_label_substrings": [
+        "independent",
+        "independently verified",
+        "independent verification",
+        "independent oracle",
+        "independent check",
+        "independent confirmation"
+      ],
+      "disclosure_required": false,
+      "notes": [
+        "The word 'independent' in any form in the verifier HTML is a ship-blocker.",
+        "The cited oracle inputs are gate reads, not independent verifiers.",
+        "ARCH.1 res 4: this is the canonical snapshot test for that constraint.",
+        "Applies to all subject_types; weather chosen as the simplest baseline entry.",
+        "Any verifier template change that introduces 'independent' will fail this vector."
+      ]
+    },
+    "notes": [
+      "Entry is identical to the baseline weather entry in valid.json.",
+      "The unique test coverage here is the render_contract.forbidden_label_substrings['independent'] check.",
+      "Without this vector, a template change adding 'independently verified' would be undetected."
+    ]
+  },
+  {
+    "name": "source_cursor render: entry without source_cursor has no cursor label rendered",
+    "kind": "cited_oracle_input_entry",
+    "expect": "valid",
+    "entry": {
+      "subject_type": "time",
+      "value_hash": "sha256:139c09f573df8f5b888b4b2fb3b33eebaeee4dd0a43bf176b951e080bb94049c",
+      "raw_value": { "now_utc": "2026-06-17T19:38:22.000Z", "tz": "America/Denver" },
+      "fetched_at": "2026-06-17T19:38:22.000Z",
+      "source_url": "system:monotonic-clock"
+    },
+    "render_contract": {
+      "source_cursor_value": null,
+      "feed_claimed_at_present": false,
+      "expected_label_contains": null,
+      "cursor_label_must_be_absent": true,
+      "forbidden_label_substrings": [
+        "Feed cursor",
+        "Feed snapshot",
+        "cache cursor",
+        "cache-cursor",
+        "Cache cursor",
+        "Pattern 13",
+        "snapshot freshness",
+        "fresh as of",
+        "stale by"
+      ],
+      "disclosure_required": false,
+      "notes": [
+        "No source_cursor present: no cursor label rendered at all.",
+        "No feed_claimed_at present: disclosure paragraph must not appear.",
+        "Forbidden list includes all cursor label variants to confirm none appears."
+      ]
+    },
+    "notes": [
+      "Baseline: time adapter emits no cursor annotation.",
+      "Verifier UI must not hallucinate a cursor label when source_cursor is absent.",
+      "value_hash verified: sha256(JCS({now_utc,tz})) = 139c09f5..."
+    ]
+  }
+]

@@ -1,0 +1,259 @@
+[
+  {
+    "name": "complexity.trivial_greeting",
+    "kind": "complexity",
+    "description": "Short greeting scores at the simple baseline",
+    "input": {
+      "messages": [{ "role": "user", "content": "hi" }],
+      "has_tools": false,
+      "pts_tier": 0
+    },
+    "expected": {
+      "tier": "simple",
+      "score_range": [20, 20]
+    }
+  },
+  {
+    "name": "complexity.tools_bump",
+    "kind": "complexity",
+    "description": "has_tools=true bumps score by 20",
+    "input": {
+      "messages": [{ "role": "user", "content": "hi" }],
+      "has_tools": true,
+      "pts_tier": 0
+    },
+    "expected": {
+      "tier": "moderate",
+      "score_range": [40, 40]
+    }
+  },
+  {
+    "name": "complexity.reasoning_phrase",
+    "kind": "complexity",
+    "description": "Reasoning phrase + reasoning signal both fire, pushing to moderate",
+    "input": {
+      "messages": [{ "role": "user", "content": "Explain step by step why the sky is blue" }],
+      "has_tools": false,
+      "pts_tier": 0
+    },
+    "expected": {
+      "tier": "moderate",
+      "score_range": [35, 45],
+      "reasons_include": ["reasoning phrase"]
+    }
+  },
+  {
+    "name": "complexity.two_phrases_floor",
+    "kind": "complexity",
+    "description": "Two reasoning phrases floors score at 60 (complex tier)",
+    "input": {
+      "messages": [{ "role": "user", "content": "Please step by step analyze tradeoffs of this design" }],
+      "has_tools": false,
+      "pts_tier": 0
+    },
+    "expected": {
+      "tier": "complex",
+      "score_range": [60, 100],
+      "reasons_include": ["explicit reasoning phrases"]
+    }
+  },
+  {
+    "name": "complexity.pts_tier3_floor",
+    "kind": "complexity",
+    "description": "pts_tier=3 floors score at 70 (≥60 → complex tier)",
+    "input": {
+      "messages": [{ "role": "user", "content": "hi" }],
+      "has_tools": false,
+      "pts_tier": 3
+    },
+    "expected": {
+      "tier": "complex",
+      "score_range": [70, 79],
+      "reasons_include": ["PTS tier 3"]
+    }
+  },
+  {
+    "name": "arbitrage.disabled_passthrough",
+    "kind": "arbitrage",
+    "description": "Disabled arbitrage returns requested model unchanged",
+    "input": {
+      "requested_model": "gpt-4o",
+      "complexity_tier": "trivial",
+      "complexity_score": 10,
+      "has_tools": false,
+      "opts": { "enabled": false }
+    },
+    "expected": {
+      "arbitraged": false,
+      "model": "gpt-4o"
+    }
+  },
+  {
+    "name": "arbitrage.pinned_opus",
+    "kind": "arbitrage",
+    "description": "claude-opus prefix is pinned and never substituted",
+    "input": {
+      "requested_model": "claude-opus-4-7",
+      "complexity_tier": "trivial",
+      "complexity_score": 10,
+      "has_tools": false,
+      "opts": { "enabled": true }
+    },
+    "expected": {
+      "arbitraged": false,
+      "model": "claude-opus-4-7"
+    }
+  },
+  {
+    "name": "arbitrage.trivial_gets_cheaper",
+    "kind": "arbitrage",
+    "description": "Trivial request gets a cheaper model than gpt-4o",
+    "input": {
+      "requested_model": "gpt-4o",
+      "complexity_tier": "simple",
+      "complexity_score": 20,
+      "has_tools": false,
+      "opts": { "enabled": true }
+    },
+    "expected": {
+      "arbitraged": true,
+      "cheaper_than_gpt4o": true
+    }
+  },
+  {
+    "name": "arbitrage.tools_requires_capable_model",
+    "kind": "arbitrage",
+    "description": "Tool-use requests only get models that support tools",
+    "input": {
+      "requested_model": "gpt-4o",
+      "complexity_tier": "simple",
+      "complexity_score": 20,
+      "has_tools": true,
+      "opts": { "enabled": true }
+    },
+    "expected": {
+      "model_supports_tools": true
+    }
+  },
+  {
+    "name": "arbitrage.cost_ceiling_respected",
+    "kind": "arbitrage",
+    "description": "max_cost_per_1k=0.0002 keeps model within budget or passthroughs",
+    "input": {
+      "requested_model": "gpt-4o",
+      "complexity_tier": "simple",
+      "complexity_score": 20,
+      "has_tools": false,
+      "opts": { "enabled": true, "max_cost_per_1k": 0.0002 }
+    },
+    "expected": {
+      "cost_per_1k_lte": 0.0025
+    }
+  },
+  {
+    "name": "receipt.content_addressed",
+    "kind": "receipt",
+    "description": "Same inputs produce same receipt_id (content-addressed)",
+    "input": {
+      "tenant_id": "t_abc",
+      "verb": "broker.dispatch",
+      "request_oid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "model": "gpt-4o-mini",
+      "provider": "openai",
+      "cache_decision": "miss",
+      "cost_usd": 0.0001,
+      "cost_source": "estimated",
+      "now": "2026-05-30T00:00:00.000Z"
+    },
+    "expected": {
+      "receipt_id_is_hex64": true,
+      "deterministic": true
+    }
+  },
+  {
+    "name": "receipt.different_tenant_different_id",
+    "kind": "receipt",
+    "description": "Different tenant_id produces different receipt_id",
+    "input": {
+      "base": {
+        "verb": "broker.dispatch",
+        "request_oid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model": "gpt-4o-mini",
+        "provider": "openai",
+        "cache_decision": "miss",
+        "cost_usd": 0.0001,
+        "cost_source": "estimated",
+        "now": "2026-05-30T00:00:00.000Z"
+      },
+      "tenant_a": "tenant-aaa",
+      "tenant_b": "tenant-bbb"
+    },
+    "expected": {
+      "ids_differ": true
+    }
+  },
+  {
+    "name": "receipt.null_sink_accepts_any",
+    "kind": "receipt_sink",
+    "description": "NULL_SINK write() resolves without throwing",
+    "input": {
+      "tenant_id": "t_test",
+      "verb": "broker.cache_hit",
+      "request_oid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "model": "llama-3.1-8b-instant",
+      "provider": "groq",
+      "cache_decision": "l1_hit",
+      "cost_usd": 0,
+      "cost_source": "actual"
+    },
+    "expected": {
+      "no_throw": true
+    }
+  },
+  {
+    "name": "coalesce.first_call_not_coalesced",
+    "kind": "coalesce",
+    "description": "First call on a key is not coalesced",
+    "input": {
+      "key": "semantic-oid-abc",
+      "call": "first"
+    },
+    "expected": {
+      "coalesced": false
+    }
+  },
+  {
+    "name": "coalesce.second_call_coalesced",
+    "kind": "coalesce",
+    "description": "Second call on same in-flight key is coalesced",
+    "input": {
+      "key": "semantic-oid-xyz",
+      "call": "second"
+    },
+    "expected": {
+      "coalesced": true
+    }
+  },
+  {
+    "name": "model_registry.has_multivendor",
+    "kind": "registry",
+    "description": "Registry contains models from at least 3 providers",
+    "input": {},
+    "expected": {
+      "min_providers": 3,
+      "min_models": 10
+    }
+  },
+  {
+    "name": "model_registry.tier_ordering",
+    "kind": "registry",
+    "description": "tierGte is a proper partial order",
+    "input": {},
+    "expected": {
+      "trivial_gte_trivial": true,
+      "simple_gte_trivial": true,
+      "expert_gte_complex": true,
+      "trivial_not_gte_simple": true
+    }
+  }
+]

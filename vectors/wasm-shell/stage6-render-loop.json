@@ -1,0 +1,142 @@
+{
+  "status": "PARTIAL-AGAINST-TEST-KEYS",
+  "status_runner": "runner-SHIPPED for DR-6, DR-7, LGRT-3-LOOP, LGRT-4-LOOP when the stage6-render-loop binary AND tsx are present (runStage6Vectors in src/protocols/wasm-shell.ts shells to the binary and asserts on its stdout); NOT-EXECUTABLE-IN-RUNNER otherwise. F3/epoch vectors are cargo-test-backed (see status_runner_f3).",
+  "status_runner_f3": "epoch_hydration_end_to_end, f3_epoch_hwm_advances, f3_stale_beyond_60s_reconsults, f3_cache_key_transplant_via_originating_receipt: cargo test --lib (no server required) GREEN 2026-06-22. f3_pre_epoch_decision_reconsults, f3_reconsult_fails_denies_no_render: runner-conditional (cargo test -- --ignored; requires Node/tsx live-gate-test-server.ts). NOT-EXECUTABLE-IN-RUNNER without the Node server.",
+  "status_caveat": "ADR_013 Stage-6 per-invocation render loop. First actual execution 2026-06-21 (wasm-runtime branch, after shell_stub.wasm was built). The Rust binary (stage6-render-loop) calls synoi_daemon::boot() to extract CachedGateSignerKey from BootReport::Started, spawns the Node/tsx test gateway server, then gates real Wasmtime render-panel calls on live HTTP POST to /internal/gate/consult. Trust comes from the signature under the boot-extracted key, NOT from the HTTP channel (ADR_013 Section 3.2). /internal/gate/pubkeys is NOT consulted. SCOPE: TEST KEYS ONLY (IMAGE_SIGNING_ED_SEED=[1..1], CARRIER_SIGNING_ED_SEED=[3..3], GATE_SIGNER_ED_SEED=[5..5]). No production KMS keys. RAN GREEN 2026-06-21 (F1 closed): DR-6 (sentinel=1, both receipts emitted), DR-7 (genuine signed deny, RenderDecision::Deny, sentinel=0, axis=1, denial receipt + chrome), LGRT-3-LOOP (hard-refuse MissingMlDsa65, sentinel=0), LGRT-4-LOOP (UntrustedSigner tuple-mismatch, sentinel=0). F3 + epoch wiring added 2026-06-22 (commit 585cb57 on wasm-runtime): epoch HWM threaded from BootReport::Started::last_seen_epoch into run_stage6_render; GateDecisionCache wired into render loop; MustReconsult triggers one bounded re-consult attempt; fail-closed deny on re-consult failure; last_seen_epoch advanced after each admitted decision; 60s TTL ceiling enforced. PAPER: full signed receipt CDRO format (DESIGN-PENDING-#33), production KMS, witnessing (ADR_011 Section 9.1 / ADR_012 Section 11.1), integrated genesis-boot trust-root. PAPER: epoch HWM persist-back from render loop (seam documented in daemon/src/lib.rs:466-476; held in-memory for this slice; banked follow-up per ADR_011 Sec 3.2.3.1).",
+  "claim_ids": [
+    "ADR_013_Section_6_stage6_render_loop",
+    "ADR_005_Section_5_per_invocation_gate_consultation",
+    "ADR_005_Section_5_1_bound_tuple_rebind",
+    "ADR_005_Section_5_3_ttl_ceiling_60s",
+    "ADR_005_Section_5_7_revocation_epoch_hwm",
+    "ADR_011_Section_3_2_3_1_epoch_hydration"
+  ],
+  "toolchain_requirements": {
+    "binary": "synoi-runtime-wt/runtime/b1-harness/target/debug/stage6-render-loop[.exe]",
+    "wasm": "synoi-runtime-wt/runtime/test-components/shell-stub/target/wasm32-wasip1/release/shell_stub.wasm",
+    "tsx": "synoi-runtime-wt/node_modules/.bin/tsx.cmd (Windows) or tsx (Unix)",
+    "note": "binary spawns Node/tsx internally; runner needs the Rust binary + shell_stub.wasm + tsx all present"
+  },
+  "vectors": [
+    {
+      "name": "dr-6-gate-allow-renders",
+      "tag": "DR-6",
+      "expected": "PASS",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- ran green 2026-06-21",
+      "description": "Gate ALLOW: live HTTP POST to /internal/gate/consult returns allow decision. Host verifies under boot-extracted CachedGateSignerKey (NOT /pubkeys). ADR_005 Sec 5.1 bound-tuple rebind passes. gate_decision_cache_admit called. export_call_sentinel becomes 1 (render-panel WIT export was called). Invocation receipt and result receipt (stub OIDs) emitted, both citing decision_oid. Confirmed by the 2026-06-21 run: RenderDecision::Allow, sentinel=1, non-empty panel_data_payload, non-empty receipt OIDs, view_type=stream. PARTIAL-against-test-keys. Receipts: stub OIDs (DESIGN-PENDING-#33)."
+    },
+    {
+      "name": "dr-7-gate-deny-renders-denial-chrome-no-export",
+      "tag": "DR-7",
+      "expected": "PASS",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- ran green 2026-06-21 (F1 closed)",
+      "description": "Gate DENY genuine signed-deny render path (ADR_005 Section 5 step-6b): the test server pre-registers sha256:dr7-deny-bundle as provisionally blocked (markProvisionallyBlocked at server startup). Axis-1 of the seven-axis aggregator returns deny for that OID. Gateway signs a genuine deny GateDecision with the same TEST hybrid keys (Ed25519+ML-DSA-65). verify_gate_decision PASSES (valid signature, correct payloadType pin, 5-field rebind matches). gate_decision_cache_admit passes. Host branches on content_core.decision='deny' (NOT HardRefuse -- that is the LGRT-3/4 path). RenderDecision::Deny is the distinct variant. export_call_sentinel stays 0 (render-panel WIT export NOT called). Denial receipt (stub OID) emitted citing decision_oid + axis. Shell-owned denial chrome rendered. DR-6 allow (sentinel=1) is the positive control proving sentinel does flip. Confirmed by the 2026-06-21 F1-close run: RenderDecision::Deny, sentinel=0, axis=1, denial_receipt_oid non-empty, denial_chrome non-empty. PARTIAL-against-test-keys. Denial receipt: stub OID (DESIGN-PENDING-#33). PAPER residuals: production KMS, witnessing, integrated genesis-boot trust-root."
+    },
+    {
+      "name": "lgrt-3-loop-stripped-ml-dsa-behind-loop",
+      "tag": "LGRT-3-LOOP",
+      "expected": "PASS",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- ran green 2026-06-21",
+      "description": "Real GateDecision from gateway; ml-dsa-65 signature stripped from the attestation before verify_gate_decision. Must hard-refuse (UntrustedSigner(MissingMlDsa65)). render-panel WIT export is NEVER called (sentinel stays 0). Proves the trust boundary is the signature, not the channel (ADR_013 Section 3.2). DR-6 sentinel=1 as positive control. Confirmed by the 2026-06-21 run: HardRefuse(MissingMlDsa65), sentinel=0. PARTIAL-against-test-keys. Distinct from DR-7: HardRefuse is the verify-failure path; Deny is the valid-sig-but-deny path."
+    },
+    {
+      "name": "lgrt-4-loop-tuple-mismatch-behind-loop",
+      "tag": "LGRT-4-LOOP",
+      "expected": "PASS",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- ran green 2026-06-21",
+      "description": "Real GateDecision for lgrt4-real-panel; rebind check (ADR_005 Sec 5.1) supplies ATTACKER-PANEL as the live panel_id. Must hard-refuse (UntrustedSigner(tuple-mismatch)). render-panel WIT export is NEVER called (sentinel stays 0). Proves ADR_005 Sec 5.1 bound-tuple rebind is enforced behind the render loop. DR-6 sentinel=1 as positive control. Confirmed by the 2026-06-21 run: UntrustedSigner(tuple-mismatch), sentinel=0. PARTIAL-against-test-keys. Distinct from DR-7: HardRefuse is the rebind-fail path; Deny is the valid-sig-but-deny path."
+    },
+    {
+      "name": "epoch-hydration-end-to-end",
+      "tag": "F3-EPOCH-HYDRATION",
+      "expected": "PASS",
+      "status_runner": "cargo-test-backed (no server required) -- GREEN 2026-06-22",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- cargo test epoch_hydration_end_to_end GREEN 2026-06-22",
+      "description": "boot() (or daemon_run_entry) hydrates last_seen_epoch=7 from a persisted GenesisRuntimeState. The render loop then passes that value to gate_decision_cache_admit. A gateway decision at revocation_epoch=4 returns MustReconsult(StaleEpoch) -- the decision pre-dates revocations at epoch 5..7. FAILING-before: last_seen_epoch was hardcoded 0 in run_stage6_render so epoch=4 passed (4 >= 0). PASSING-after: epoch=7 from boot causes StaleEpoch for epoch=4. Observable: gate_decision_cache_admit(content_core, now, 60000, 7, ...) returns MustReconsult(StaleEpoch). Test in f3_epoch_vectors::epoch_hydration_end_to_end (b1-harness/src/lib.rs). PARTIAL-against-test-keys. Epoch HWM persist-back from render loop: banked follow-up (PAPER)."
+    },
+    {
+      "name": "f3-epoch-hwm-advances",
+      "tag": "F3-EPOCH-HWM",
+      "expected": "PASS",
+      "status_runner": "cargo-test-backed (no server required) -- GREEN 2026-06-22",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- cargo test f3_epoch_hwm_advances GREEN 2026-06-22",
+      "description": "After admitting a decision at revocation_epoch=7, last_seen_epoch is raised to max(last_seen_epoch, 7) = 7. A subsequent cache-admit call for a decision at epoch=4 returns MustReconsult(StaleEpoch). FAILING-before: last_seen_epoch was never advanced after an admitted decision (stayed 0); epoch=4 passed (4 >= 0). PASSING-after: last_seen_epoch advanced to 7 after the first admit; epoch=4 is now stale. Test in f3_epoch_vectors::f3_epoch_hwm_advances. PARTIAL-against-test-keys."
+    },
+    {
+      "name": "f3-stale-beyond-60s-reconsults",
+      "tag": "F3-TTL-CEILING",
+      "expected": "PASS",
+      "status_runner": "cargo-test-backed (no server required) -- GREEN 2026-06-22",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- cargo test f3_stale_beyond_60s_reconsults GREEN 2026-06-22",
+      "description": "A cached decision whose signed issued_at is more than 60 seconds in the past is NOT served from cache; gate_decision_cache_admit returns MustReconsult(StaleBeyondMaxAge). Enforces the 60s TTL ceiling per ADR_005 Section 5.3 (effective TTL = min(expires_at - now, 60s)). FAILING-before: run_stage6_render passed max_age_ms=120000 (2 minutes); a 65s-old decision passed. PASSING-after: max_age_ms=60000; 65s-old decision fails (StaleBeyondMaxAge). Test in f3_epoch_vectors::f3_stale_beyond_60s_reconsults. PARTIAL-against-test-keys."
+    },
+    {
+      "name": "f3-pre-epoch-decision-reconsults",
+      "tag": "F3-RECONSULT",
+      "expected": "PASS",
+      "status_runner": "runner-conditional (cargo test f3_pre_epoch_decision_reconsults -- --ignored; requires Node/tsx live-gate-test-server.ts)",
+      "status": "PARTIAL (runner-conditional, requires live Node server) -- GREEN 2026-06-22 with F8 count==2 assertion",
+      "description": "Cache an allow at epoch=E from the live server; then advance last_seen_epoch to E+1 (simulating a revocation epoch bump); call run_stage6_render again for the same tuple. The cached allow at epoch=E fails admit (MustReconsult(StaleEpoch)) and a second HTTP POST is made to the gateway (re-consult). FAILING-before: MustReconsult was logged-and-continue (stale cached allow served without re-POST). PASSING-after: MustReconsult triggers bounded re-consult; the fresh decision (or fail-closed deny) is served. F8 (2026-06-22): strengthened with a POST-counter assertion -- the test queries GET /internal/_debug/consult-count from the live server and asserts count==2 (first call + re-consult). An implementation that logged MustReconsult and served the stale cached allow without re-POSTing would leave count at 1 and FAIL this assertion. Mutation-verify: temporarily made the MustReconsult arm serve-from-cache; count stayed 1 and assertion FAILED; restored real re-consult; count became 2 and PASSED. Observable: call completes without error; result is Allow or Deny (not Err); server POST count == 2. Test in f3_epoch_vectors::f3_pre_epoch_decision_reconsults (b1-harness/src/lib.rs). PARTIAL-runner-conditional."
+    },
+    {
+      "name": "f3-reconsult-fails-denies-no-render",
+      "tag": "F3-FAIL-CLOSED",
+      "expected": "PASS",
+      "status_runner": "runner-conditional (cargo test f3_reconsult_fails_denies_no_render -- --ignored; requires Node/tsx live-gate-test-server.ts)",
+      "status": "PARTIAL (runner-conditional, requires live Node server) -- not yet run with server",
+      "description": "THE LOAD-BEARING FAIL-CLOSED VECTOR. Cache a decision at epoch=E; set last_seen_epoch to 999999999 (far beyond any server epoch); a re-consult happens but the fresh decision from the server is at the server's current (low) epoch which is also stale. The invocation is DENIED: render-panel NOT called (export_call_sentinel stays 0), RenderDecision::Deny returned. FAILING-before: MustReconsult was logged-and-continue; stale cached allow was served with sentinel=1. PASSING-after: bounded re-consult; fresh decision also fails admit; DENY with sentinel=0. The fail-closed security property is tagged PARTIAL only when this test passes with sentinel=0. Test in f3_epoch_vectors::f3_reconsult_fails_denies_no_render. PARTIAL-runner-conditional."
+    },
+    {
+      "name": "f3-cache-key-transplant-via-originating-receipt",
+      "tag": "F3-CACHE-TRANSPLANT",
+      "expected": "PASS",
+      "status_runner": "cargo-test-backed (no server required) -- GREEN 2026-06-22",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- cargo test f3_cache_key_transplant_via_originating_receipt GREEN 2026-06-22",
+      "claim_ids": [
+        "ADR_005_Section_5_1_bound_tuple_rebind"
+      ],
+      "description": "Panel Finding-1 (CRITICAL) + Finding-3 (HIGH): the GateDecisionCache key omitted originating_receipt_oid (the FIFTH bound-tuple field), and the ServeFromCache arm dispatched render_allow/render_deny without a bound-tuple rebind. An allow cached for tuple (B,P,Panel,Action,originating=sha256:prior-A) could be transplanted onto a DIFFERENT invocation of the same 4-tuple with originating=None or originating=sha256:other-B (decision transplant via cache). REJECT vector: the cached allow MUST NOT be served for a mismatched originating_receipt_oid; the invocation forces a live re-consult / fail-closed deny instead. Two defenses, both covered: (1) cache_key now derives from the FULL 5-field tuple with a None-sentinel that cannot collide with any real OID (None structurally distinct from Some(\"\") and Some(\"none\")); (2) defense-in-depth: the ServeFromCache arm calls the SHIPPED single comparator synoi_verify::bound_tuple_matches (the SAME one verify_gate_decision uses on the live path -- no hand-rolled second check) against the live invocation tuple and refuses to serve on mismatch. FAILING-before: the new test demands a 5-arg cache_key (compile-fail against the 4-field key) and the serve arm had no rebind. PASSING-after: 5-field key separates None vs Some(prior-A) vs Some(other-B), Some(\"\") and Some(\"none\"); bound_tuple_matches rejects both None-vs-Some and Some-vs-different-Some transplants; positive control (identical 5-tuple) rebinds. Covers BOTH None-vs-Some and Some-vs-different-Some. Test in f3_epoch_vectors::f3_cache_key_transplant_via_originating_receipt (b1-harness/src/lib.rs); no Node server required (cargo test --lib). PARTIAL-against-test-keys. None-sentinel encoding (length-prefixed 5-tuple, optional field tagged N/S) is a key-derivation choice internal to the runtime cache, NOT a wire-format contract: a GateDecision is still signed over the JSON content_core whose originating_receipt_oid is null-or-string per ADR_005 Sec 5.1; the cache key is never transmitted or signed."
+    }
+  ],
+  "addressed_follow_ups": [
+    {
+      "id": "F8",
+      "severity": "LOW (test strengthening)",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- addressed 2026-06-22 on wasm-runtime",
+      "commit": "ce8b0ab",
+      "description": "f3_pre_epoch_decision_reconsults verified the MustReconsult path returned Allow or Deny without error, but did NOT assert that a SECOND HTTP POST was actually made. An implementation that logged MustReconsult and served the stale cached allow without re-POSTing would produce Allow and pass the old assertion. Fixed by adding a POST counter to live-gate-test-server.ts (incremented on each POST to /internal/gate/consult, exposed via GET /internal/_debug/consult-count -> {count: N}; TEST-ONLY, clearly labeled) and asserting count==2 in the test after the second invocation. Mutation-verify: MustReconsult arm temporarily made to serve-from-cache; count stayed 1 and assertion FAILED; restored real re-consult; count became 2 and PASSED. Makes the re-consult freshness guarantee non-vacuous for the MustReconsult(StaleEpoch) path. Changed: test/live-gate-test-server.ts, runtime/b1-harness/src/lib.rs."
+    },
+    {
+      "id": "F7",
+      "severity": "LOW",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- addressed 2026-06-22 on wasm-runtime",
+      "commit": "e9f46c1",
+      "description": "The HTTP-consult-failure deny path in run_stage6_render used a hard-coded synthetic decision_oid 'sha256:http-fail-deny', making denial receipts non-attributable and non-traceable by an auditor. Fixed by deriving the OID from a structured reason object via the SHIPPED oid_of(canonicalize(...)) helper: oid_of({reason: 'gate-consult-unavailable', schema_version: 'http-fail-deny/1'}). The OID is reproducible from the same reason object; any auditor can independently recompute it. Fail-closed behavior is identical (deny, sentinel stays 0, render-panel NOT called). Reproduce-first: f7_http_fail_deny_oid_is_structured drives run_stage6_render against a dead port (127.0.0.1:1, reqwest 1s timeout) so the HTTP POST fails immediately without a running server. Asserts: (a) result is Deny (fail-closed unchanged), (b) decision_oid IS NOT the old literal 'sha256:http-fail-deny' (FAILING-before: it WAS the literal), (c) decision_oid equals oid_of(reason_obj) recomputed in the test (PASSING-after), (d) sentinel stays 0. cargo test --lib GREEN (no server required). Changed: runtime/b1-harness/src/lib.rs."
+    },
+    {
+      "id": "F6",
+      "severity": "MEDIUM",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- addressed 2026-06-22 on wasm-runtime",
+      "commit": "1029cd2",
+      "description": "GateDecisionCache had no size cap or eviction policy. Fixed: added MAX_CACHE_ENTRIES=1024 constant, FIFO eviction via insertion_order: VecDeque<String>, and expiry sweep on insert (sweep expired entries before applying the cap). Eviction is fail-safe: an evicted entry becomes a cache miss -> fresh live gate consult (never a stale serve). Tests: f3_cache_unbounded_growth_check (insert MAX+2 keys, assert len <= MAX; FAILING-before / PASSING-after) and f6_expiry_sweep_reclaims_before_eviction (insert 1ms-TTL entry then second entry; assert expired entry swept; FAILING-before / PASSING-after). Both GREEN: cargo test --lib f6_cache_bound_vectors. Changed: runtime/b1-harness/src/lib.rs."
+    },
+    {
+      "id": "F5",
+      "severity": "MEDIUM",
+      "status": "PARTIAL (SHIPPED-against-test-keys) -- addressed 2026-06-22; SUPERSEDED by parser-dfr-off-by-one fix same day (the round-trip-only formatter was the exact inverse of an off-by-one parser; both now calendar-correct)",
+      "commit": "ae32158",
+      "description": "The now_rfc3339 block in run_stage6_render used Julian-average constants (31_557_600 s/yr, 2_629_800 s/mo) while parse_rfc3339_to_unix_ms in synoi-carrier used per-month Gregorian arithmetic. Format-then-parse round-trip drifted near month boundaries, eroding the 60s-TTL freshness check at the edge. The first F5 fix added unix_secs_to_rfc3339 to synoi-carrier and made it the EXACT INVERSE of parse_rfc3339_to_unix_ms, achieving round-trip identity. CORRECTION (same day, parser-dfr-off-by-one): that inverse-of-a-buggy-parser approach left BOTH functions disagreeing with a standard RFC3339 encoder by ~1 day for Jan/Feb of leap years. Because issued_at on the cache-admit freshness path comes from the PRODUCTION gateway (a standard encoder), not from this formatter, the ~1-day skew did NOT cancel. Both functions are now true proleptic-Gregorian (days_from_civil / civil_from_days, Howard Hinnant, dependency-free); the round-trip vectors were re-anchored to POSIX truth. now_rfc3339 in run_stage6_render still calls unix_secs_to_rfc3339. Tests: f3_now_rfc3339_formatter_parser_roundtrip (re-anchored to calendar-correct strings; GREEN). Changed: runtime/carrier/src/lib.rs, runtime/b1-harness/src/lib.rs."
+    },
+    {
+      "id": "parser-dfr-off-by-one",
+      "severity": "MEDIUM (correctness, freshness-path)",
+      "status": "PARTIAL (SHIPPED-against-test-keys), POSIX-truth-backed -- addressed 2026-06-22 on wasm-runtime",
+      "commit": "b7adecd",
+      "description": "parse_rfc3339_to_unix_ms used dfr(y)=365y+y/4-y/100+y/400 for the year-start day offset; that formula counts the TARGET year's Feb-29 in the year-boundary offset, so for Jan/Feb dates of a leap year the result was one day (86400 s) too high. Verified reproduce-first: parse('2024-01-01T00:00:00Z') returned 1704153600 vs the POSIX truth 1704067200 (off +86400). This is NOT cosmetic: gate_decision_cache_admit computes age = parse(now) - parse(issued_at) where issued_at is signed by the PRODUCTION gateway (consult-gate-router.ts, a standard JS encoder) and now is the daemon's own string. The prior F5 formatter was the exact inverse of this buggy parser, so format-then-parse round-trips masked the bug, but the daemon-vs-gateway cross-encoder delta did NOT cancel -- a ~1-day-old decision could read as fresh against the 60s TTL. Fix: replaced the dfr arithmetic with Howard Hinnant days_from_civil (parser) and civil_from_days (formatter); proleptic Gregorian, ~10 lines each, NO new dependency (chrono/time deliberately not added). Pre-epoch dates now return None. Vectors (carrier gv_tests): posix_truth_parse_to_unix_ms and posix_truth_format_to_string pin 11 calendar truths verified against a standard encoder (epoch, 2024-01-01, 2000-03-01, 2023-02-28, 2024-02-29 leap day, 2024-03-01, 1999-12-31T23:59:59, 2024-02-01, 2020-01-15, century-non-leap 2100-03-01, div-400 leap 2400-02-29) -- FAILING-before (2024-01-01 returned 1704153600000 ms; formatter emitted nonsense '2023-12-32T00:00:00Z' for 1704067200), PASSING-after. posix_truth_roundtrip confirms mutual-inverse identity at the corrected values. Cross-encoder agreement with the production gateway confirmed live: LGRT-1..5 (incl. LGRT-5 STALE) and f3_pre_epoch / f3_reconsult / DM-2/3 all GREEN against the Node/Express gate-consult server; LGRT-5 parsed the server-minted expires_at (fractional-second RFC3339) and computed TTL=59986ms fresh, past=0 stale. Carrier 30 passed, b1-harness lib 9 + 4 ignored GREEN, daemon 17, genesis 50/2. Changed: runtime/carrier/src/lib.rs (parser + formatter), runtime/b1-harness/src/lib.rs (re-anchored F5 round-trip vectors to POSIX truth). Callers of the two fns audited: genesis (not_before/not_after/now window checks, symmetric -- correct), carrier verify_carrier window (symmetric -- correct), carrier gate_decision_cache_admit (age delta, logic UNCHANGED -- now correct across encoders), live_gate_round_trip LGRT-5 (TTL -- correct). No caller relied on the off-by-one encoding."
+    }
+  ],
+  "banked_follow_ups": [
+    "cosmetic: ADDRESSED 2026-06-22 (gateway a6c9b5b) -- the stale stage6_render_loop.rs:NNN seam line-pointer comments in daemon/b1-harness/genesis were corrected to be accurate or line-number-free.",
+    "structural: ADDRESSED 2026-06-22 (conformance d96c82d) -- VectorResult gains status: 'pass' | 'fail' | 'not-executable' (optional; runner normalizes from passed when absent). All NOT-EXECUTABLE-IN-RUNNER sites in wasm-shell.ts now emit status=not-executable via notExec() helper. RunReport gains not_executable count + not_executables array. Reporter prints SKIP for not-executable, FAIL only for genuine failures. CLI tally: 80 pass, 0 fail, 52 not-executable. Reproduce-first test (test/not-executable-status.test.ts) asserts FAILING-BEFORE (old any-!passed=failed logic) / PASSING-AFTER (not-executable excluded from failed) / CONTROL (genuine fail still counted). 16/16 assertions pass."
+  ]
+}

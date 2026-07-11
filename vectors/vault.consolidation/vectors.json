@@ -1,0 +1,49 @@
+[
+  {
+    "name": "vault.consolidation.orphan_free",
+    "kind": "vault.consolidation.orphan_free",
+    "description": "After a successful prune: zero ghost HNSW vectors remain (l2_index_meta rows deleted in same transaction, HNSW remove() called only after SQL commit), zero orphaned mros rows remain (deleted in same transaction as body DELETE), and survivor CDRO identity (oid_hex, canonical_hash) is unchanged. On any skip path (live_ref, tombstone_exists, governance_exempt, invalid_reason), HNSW remove() is never called (MF-3).",
+    "normative": true,
+    "source": "VAULT_COMPOUNDING_SUBSTRATE_SPEC.md section 6.5 / F7",
+    "executable_runner": "test/vault.consolidation.orphan_free.test.ts",
+    "status": "SHIPPED",
+    "assertions": [
+      "l2_index_meta row for pruned object deleted in the same transaction as body DELETE",
+      "mros row for pruned object deleted in the same transaction as body DELETE",
+      "HNSW remove() called for pruned vector_id and NOT called for survivor vector_id",
+      "survivor CDRO oid_hex and canonical_hash unchanged after prune of a different object",
+      "survivor mros and l2_index_meta rows intact after prune of a different object",
+      "live_ref skip: HNSW remove() is never called (MF-3); body and l2_index_meta row intact"
+    ]
+  },
+  {
+    "name": "vault.consolidation.scope_isolated",
+    "kind": "vault.consolidation.scope_isolated",
+    "description": "Consolidation sweep runs per-scope. A supersedes pointer that does not resolve within the caller's scope causes walkChainInScope to throw ChainScopeViolation (fail closed). The sweep catches it, records it in errors[], and continues without crashing. The object is NOT tombstoned. CDROs in other scopes are never touched by a scope-A sweep.",
+    "normative": true,
+    "source": "VAULT_COMPOUNDING_SUBSTRATE_SPEC.md section 6.4 Rule C, section 6.10 / F9",
+    "executable_runner": "test/vault.consolidation.scope_isolated.test.ts",
+    "status": "SHIPPED",
+    "assertions": [
+      "cross-scope supersedes pointer throws ChainScopeViolation with correct supersedes_pointer and caller_scope",
+      "in-scope chain (c->b->a all in scope-a) resolves correctly without throwing",
+      "CDROs in scope-b are untouched (oid_hex and canonical_hash unchanged) by a scope-a sweep",
+      "no tombstone written for scope-b objects during a scope-a sweep",
+      "cross-scope pointer encountered during prune-enabled sweep lands in errors[], object NOT tombstoned",
+      "walkChainInScope never resolves foreign-scope content (allowGlobal is never true on the prune path)"
+    ]
+  },
+  {
+    "name": "vault.consolidation.resumable",
+    "kind": "vault.consolidation.resumable",
+    "description": "The consolidation sweep is resumable (cursor-based pagination via consolidation_state) and idempotent (interrupted+re-run never double-tombstones or skips objects).",
+    "normative": true,
+    "source": "VAULT_COMPOUNDING_SUBSTRATE_SPEC.md section 6.8 P1-12",
+    "status": "SHIPPED",
+    "assertions": [
+      "sweep resumes from last_swept_object_id on restart",
+      "re-running on a fully-swept scope is a no-op (no double-tombstones)",
+      "tombstone append is idempotent per object_id"
+    ]
+  }
+]

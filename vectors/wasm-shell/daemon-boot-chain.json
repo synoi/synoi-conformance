@@ -1,0 +1,205 @@
+{
+  "status": "PARTIAL",
+  "status_runner": "NOT-EXECUTABLE-IN-RUNNER. cargo test PASS (17 tests, 0 fail) against synoi-daemon in wasm-runtime worktree. Runner wiring of DR vectors is a BANKED follow-up; the conformance runner (runner.ts) does not execute these vectors against a daemon binary.",
+  "status_caveat": "PARTIAL (SHIPPED-against-test-keys for stages 1-5 boot composition including cross-restart DR-8 persistence wiring, 17 cargo tests pass). Stage 5a refuse-to-start enforcement (DR-8 + DR-8c/d/e/f) is PARTIAL-against-test-keys SINGLE-SESSION ONLY (Security+Adversary panel cleared per ADR_013 Section 6, 2026-06-21). Cross-restart DR-8 wiring (boot_persist_replay_no_rebrick + boot_persist_lkg_dark_channel) is now PARTIAL-against-test-keys via boot() read_state + hydrate_from_state + write_state_with_signer: HWM and LKG survive simulated restart and the Adversary CRITICALs A-1 and B-1 are now CLOSED at the boot-level test layer. NAMED RESIDUALS (Phase-0 bounded, not claimed closed): (1) anti-rollback FULL is PAPER (host-root rollback undetectable without TPM/witnessed-log, ADR_011 Section 3.2.3.1 item 3); (2) state-seal key is TEST KEYS (TestStateSealSigner seed [17]/[18]); production HKDF+OS-keystore is PAPER/seam; (3) stage-6 render-loop epoch wiring is a SEAM (last_seen_epoch_from_state documented at stage6_render_loop.rs:466; boot-level proof in synoi-genesis dr_epoch1); (4) Integrated boot trust-root is PAPER (production KMS + witnessing not done, ADR_011 Section 9.1 / ADR_012 Section 11.1). Honest per CLAIMS_DISCIPLINE rules 1-2.",
+  "adr_source": "ADR_013_DAEMON_BOOT_COMPOSITION_2026-06-21.md Section 4 + ADR_011 Section 3.2.3.1",
+  "composes": [
+    "genesis-manifest-chain.json (GV-1..GV-19)",
+    "carrier-genesis-chain.json (GV-20..GV-28)",
+    "transparency-log-chain.json (TL-18, TL-19)"
+  ],
+  "defects": [],
+  "vectors": [
+    {
+      "name": "dr-1-boot-clean",
+      "tag": "DR-1",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; advisories empty; log_unreachable=false; gate_signer_key present",
+      "description": "Valid manifest + valid carrier; translog reachable with no applicable advisory (empty log); no disable entry. Expected: clean Started. Composes GV-1..GV-10/14/15/16a (manifest) + GV-20..GV-28 (carrier) + TL-20 (anchored STH accepted, empty log = no advisory).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_1_boot_clean",
+      "cargo_test_pass": true
+    },
+    {
+      "name": "dr-2-refuse-on-bad-manifest-log-never-consulted",
+      "tag": "DR-2",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::RefuseToStart{stage: Manifest, reason}; a consult that demonstrably surfaces an advisory on the success path surfaces NOTHING here (TL-19, behavioral-contrast observable)",
+      "description": "Self-contained TL-19 observable. The same byte-identical live translog handle (a GV-13 Class-A revocation of the manifest's image-signing signer, identical construction to DR-3) is booted twice. (1) Positive control: VALID manifest -> Started with a Gv13Revocation advisory, proving the log is live (a consult observably surfaces an advisory). (2) Refuse: ONE Ed25519 signature byte flipped (GV-1) -> RefuseToStart{stage: Manifest}; the advisory is produced nowhere. The only differing input is the manifest signature byte, so advisory presence (control) vs absence (refuse) is attributable solely to the manifest-verify outcome. This REPLACES the earlier entry-count proxy, which was vacuous (a read-only store's count is unchanged whether or not it was read). The call-skip is structurally guaranteed by the `?` short-circuit in verify_genesis_manifest_with_translog (manifest verify returns before the translog is matched); this vector proves the manifest-fail path does not surface what a consult would. Residual: a discarded read cannot be distinguished from a non-read at the daemon level; a direct call-observable would require instrumenting the shared TranslogStore (Architect-gated, not done). Composes GV-1 (tampered manifest) + GV-13 (live revocation entry) + TL-19 (manifest-verify-independent-of-log).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_2_refuse_on_bad_manifest_log_never_consulted",
+      "cargo_test_pass": true,
+      "claims_note": "TL-19 observable strengthened 2026-06-21 from a vacuous entry-count proxy to a behavioral contrast with an inline positive control. PARTIAL (SHIPPED-against-test-keys; cargo-backed). status_runner unchanged: NOT-EXECUTABLE-IN-RUNNER."
+    },
+    {
+      "name": "dr-3-gv13-advisory-starts",
+      "tag": "DR-3",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started with Gv13Revocation advisory present; NOT blocked",
+      "description": "Valid manifest + valid carrier; translog carries a Class-A image-key revocation entry naming the manifest signer OID (signed by log-signing key [13]/[14], successor key [15]/[16]). Expected: Started with a Gv13Revocation advisory; boot NOT blocked. DETECT/ADVISORY (Phase-0). Composes GV-13 / find_gv13_advisory.",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_3_gv13_advisory_starts",
+      "cargo_test_pass": true,
+      "claims_note": "DETECT/ADVISORY (Phase-0). NOT ENFORCING. Enforcement requires ADR_012 Section 11.1 witnessing transition (PAPER)."
+    },
+    {
+      "name": "dr-4-log-unreachable-starts",
+      "tag": "DR-4",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; log_unreachable=true; LogUnreachable advisory present; boot NOT blocked",
+      "description": "Valid manifest + valid carrier; translog=None (fetch failure). Expected: Started with log_unreachable=true and a LogUnreachable advisory. No advisory or reachability condition can produce RefuseToStart. Composes TL-18 (boot-proceeds-on-log-unreachable) + TL-16 (log-unreachable alert).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_4_log_unreachable_starts",
+      "cargo_test_pass": true
+    },
+    {
+      "name": "dr-5-carrier-pin-missing-refuses",
+      "tag": "DR-5",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::RefuseToStart{stage: Carrier, reason: manifest-missing-carrier-pin}",
+      "description": "Manifest verifies (valid signature, valid window, correct bundles) but OMITS the mandatory carrier_signing_signer_oid field. Expected: RefuseToStart at Carrier stage with manifest-missing-carrier-pin reason. Note: GenesisError::ManifestMissingCarrierPin is detected by verify_genesis_manifest at stage 1 but semantically is a Carrier-stage refusal per ADR_013 Section 1 stage 2 (the pin is the gateway to the carrier verify path). Composes GV-28 (mandatory carrier pin).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_5_carrier_pin_missing_refuses",
+      "cargo_test_pass": true,
+      "implementation_note": "GenesisError::ManifestMissingCarrierPin is mapped to BootStage::Carrier in the daemon orchestrator (not BootStage::Manifest), because its semantic meaning is 'no gate-signer key source' which is the carrier-stage fail-closed condition per ADR_013 Section 1 stage 2."
+    },
+    {
+      "name": "dr-8-enabled-valid-disable-refuses",
+      "tag": "DR-8",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::RefuseToStart{stage: DisableList, reason: genesis-disabled}",
+      "description": "Valid manifest + valid carrier; disable-list ENABLED (compiled-in bound slot present + flag=true); a disable-list CDRO that VALIDLY VERIFIES under the separate disable-list bound key (seed [11]/[12]) names a PINNED genesis bundle. Expected: RefuseToStart{stage: DisableList}. This is the stage-5a act-on-entry-in-hand enforcement path. The refusal is LOG-INDEPENDENT (the entry verifies under the disable-list bound key, not the log; TL-11). Composes GV-17/18/19 + build_disable_list_fixture (seeds [11]/[12]) + GenesisError::genesis-disabled.",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_8_enabled_valid_disable_refuses",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL-against-test-keys, SINGLE-SESSION ONLY. The Security+Adversary panel (ADR_013 Section 6, 2026-06-21) cleared the single-session property: (1) forged/replayed/stale entry does not brick a healthy daemon (DR-8c/d/e/f), and (2) a real applicable entry is not silently swallowed (this vector). Cross-restart wiring (A-1/B-1) is NOW CLOSED at the boot-level test layer by boot_persist_replay_no_rebrick and boot_persist_lkg_dark_channel (PARTIAL-against-test-keys). Named residuals: anti-rollback FULL PAPER; production seal key PAPER/seam; stage-6 epoch seam. No production claim."
+    },
+    {
+      "name": "dr-8c-forged-wrong-key-disable-does-not-brick",
+      "tag": "DR-8c",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; HWM unchanged (stays 0); forged entry treated as absent",
+      "description": "Stage-5a P1 reject-test. An applicable disable entry naming a pinned bundle is forged under the WRONG key class (image-signing, then carrier/gate-signer) instead of the separate disable-list bound key. The forged entry FAILS verify (PAE-bound, wrong key) and is treated as absent: boot STARTS, HWM does not advance. Daemon-level proof of ADR_011 Section 3.2.5 blast-radius: image-signing or gate-signer compromise cannot forge a brick. SINGLE-SESSION (no restart).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_8c_forged_wrong_key_disable_does_not_brick",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL-against-test-keys, SINGLE-SESSION. Panel P1 evidence (forged entry MUST NOT brick). Cross-restart A-1 is now PARTIAL-against-test-keys via boot_persist_replay_no_rebrick."
+    },
+    {
+      "name": "dr-8d-replayed-disable-does-not-brick",
+      "tag": "DR-8d",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; HWM unchanged on replay rejection",
+      "description": "Stage-5a P1 reject-test. The in-memory HWM is pre-advanced to 10 with a genuine no-op list, then a genuinely-signed applicable entry at seq=10 (== HWM) is replayed. Anti-replay rejects it (reason disable-replay); boot STILL STARTS. NOTE: a process restart would reset HWM to 0 (genesis/src/lib.rs:262-291) without persistence; the boot_persist_replay_no_rebrick vector closes the A-1 cross-restart gap at the boot-level test layer.",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_8d_replayed_disable_does_not_brick",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL-against-test-keys, SINGLE-SESSION. Panel P1 evidence (replay MUST NOT brick). Cross-restart replay (A-1) is now PARTIAL-against-test-keys via boot_persist_replay_no_rebrick."
+    },
+    {
+      "name": "dr-8e-stale-window-disable-does-not-brick",
+      "tag": "DR-8e",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; out-of-window entry rejected (reason disable-window)",
+      "description": "Stage-5a P1 reject-test. A genuinely-signed applicable entry whose validity window is closed (expired) or not-yet-open (future not_before) is presented. The window arm rejects it (reason disable-window); boot STARTS. SINGLE-SESSION (no restart).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_8e_stale_window_disable_does_not_brick",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL-against-test-keys, SINGLE-SESSION. Panel P1 evidence (stale entry MUST NOT brick). Cross-restart stays in-scope of boot_persist_replay_no_rebrick (HWM survives restart)."
+    },
+    {
+      "name": "dr-8f-separate-key-is-load-bearing",
+      "tag": "DR-8f",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "same applicable entry: forged-key -> Started; genuine bound-key -> RefuseToStart{DisableList}",
+      "description": "Stage-5a P1 reject-test. Proves the separate disable-list bound key is load-bearing: the SAME applicable entry forged under the wrong key STARTS (no brick), while signed under the genuine disable-list bound key it REFUSES. Confirms the brick power flows only from the separate bound key, not from any compromised key class. SINGLE-SESSION (no restart).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_8f_separate_key_is_load_bearing",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL-against-test-keys, SINGLE-SESSION. Panel P1 evidence (separate-key gate is load-bearing). Cross-restart stays PAPER per production key residuals."
+    },
+    {
+      "name": "dr-8b-not-enabled-starts",
+      "tag": "DR-8b(a)",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; no disable channel consulted; boot proceeds",
+      "description": "Disable-list NOT enabled (no compiled-in bound slot, DisableListLoader::new(None, false)). Expected: Started; the disable channel is permanently disabled (GV-19); no advisory from disable channel. Composes GV-19 (permanently-disabled-without-slot).",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_8b_not_enabled_starts",
+      "cargo_test_pass": true
+    },
+    {
+      "name": "dr-8b-enabled-unreachable-starts",
+      "tag": "DR-8b(b)",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; log_unreachable=true; LogUnreachable advisory present; boot NOT blocked",
+      "description": "Disable-list ENABLED (bound slot present + flag=true) but disable_list_cdro=None (disable channel unreachable); translog also None. Expected: Started with log_unreachable=true and LogUnreachable advisory. Consistent with DR-4 / TL-18: the only difference between DR-8 and DR-8b is whether a verified entry is in hand, never whether the log is reachable. Composes GV-19 (b, unreachable variant) + TL-18 (boot-proceeds-on-log-unreachable) + None branch of verify_genesis_manifest_with_disable_list.",
+      "fixture_source": "synoi-daemon/src/tests.rs::dr_8b_enabled_unreachable_starts",
+      "cargo_test_pass": true
+    },
+    {
+      "name": "boot-persist-replay-no-rebrick",
+      "tag": "boot_persist_replay_no_rebrick (A-1 end-to-end)",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "FAILURE-MODE arm: un-wired boot() (HWM=0) DOES re-brick on a retracted seq=3 entry -> RefuseToStart{DisableList}. FIX arm: wired boot() reads persisted HWM=5, hydrates loader, replay rejected -> Started (no re-brick). Loader HWM=5 after hydration.",
+      "description": "Cross-restart DR-8 A-1 fix, end-to-end through boot(). Persists a state with disable_list_seq_hwm=5 (simulating session-1 applied seq=5). Constructs a FRESH DisableListLoader (HWM=0, simulating restart). Calls boot() TWICE: (1) un-wired (state_path=None) -> replay passes HWM=0 check -> RefuseToStart (FAILURE-MODE confirmed). (2) wired (state_path configured) -> boot() calls read_state, hydrates loader to HWM=5, replay seq=3 is rejected as disable-replay -> boot() returns Started. Proves A-1 (replay-after-restart re-bricks) is closed at the boot-level for the test-key scenario. ADR_011 Section 3.2.3.1 item 5 ordering confirmed: read runs AFTER stages 1+2 (trust root), BEFORE stage 5 (disable consult). RESIDUALS: anti-rollback FULL is PAPER (host-root rollback undetectable in Phase-0; dr_state_rollback #[ignore] in synoi-genesis); production seal key is PAPER/seam (TestStateSealSigner seed [17]/[18]); no production claim.",
+      "fixture_source": "synoi-daemon/src/tests.rs::boot_persist_replay_no_rebrick",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL (SHIPPED-against-test-keys for boot() read+hydrate+write wiring, A-1 path). Anti-rollback FULL: PAPER. Production seal key (HKDF+OS-keystore): PAPER/seam. Stage-6 epoch seam: documented at stage6_render_loop.rs:466. No production claim."
+    },
+    {
+      "name": "boot-persist-lkg-dark-channel",
+      "tag": "boot_persist_lkg_dark_channel (B-1 end-to-end)",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "FAILURE-MODE arm: un-wired boot() (LKG=None) STARTS on dark channel even though bundle X is disabled. FIX arm: wired boot() reads persisted LKG, hydrates loader; dark-channel boot REFUSES (RefuseToStart{DisableList}) via LKG path.",
+      "description": "Cross-restart DR-8 B-1 fix, end-to-end through boot(). Applies a disable list (names bundle X, seq=1, open window) and persists the state with LKG set. Constructs a FRESH DisableListLoader (LKG=None, simulating restart). Calls boot() TWICE with disable_list_cdro=None (dark channel): (1) un-wired (state_path=None) -> LKG=None -> dark channel -> Started (FAILURE-MODE confirmed; bundle X boots). (2) wired (state_path configured) -> boot() calls read_state, hydrates LKG from store -> LKG path in verify_genesis_manifest_with_disable_list still refuses X -> RefuseToStart{DisableList}. Proves B-1 (suppress-after-restart boots a disabled bundle on dark channel) is closed at the boot-level for the test-key scenario. RESIDUALS: same as A-1 vector above.",
+      "fixture_source": "synoi-daemon/src/tests.rs::boot_persist_lkg_dark_channel",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL (SHIPPED-against-test-keys for boot() LKG hydration from persisted store, B-1 path). Anti-rollback FULL: PAPER. Production seal key: PAPER/seam. No production claim."
+    },
+    {
+      "name": "boot-state-missing-fail-open",
+      "tag": "boot_state_missing_fail_open",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; state_alert = StateMissingReestablishing; loader HWM = 0; NO brick",
+      "description": "No state file on disk (first boot / fresh install). boot() called with state_path configured but file absent. Expected: boot proceeds (fail-open), loader stays at zeros, BootReport::Started.state_alert = StateMissingReestablishing. The genesis manifest verify (stage 1) is the only boot-time fail-closed gate; a missing state file MUST NOT brick. ADR_011 Section 3.2.3.1 item 4 (i): cold start = fail-open, enforcement state UNKNOWN, re-establish from live channel with alert.",
+      "fixture_source": "synoi-daemon/src/tests.rs::boot_state_missing_fail_open",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL (SHIPPED-against-test-keys). State alert surfaces in BootReport::Started.state_alert. Caller must surface to operator."
+    },
+    {
+      "name": "boot-state-corrupt-fail-open",
+      "tag": "boot_state_corrupt_fail_open",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "BootReport::Started; state_alert = StateCorruptReestablishing{..}; no attacker value loaded from corrupt store; NO brick",
+      "description": "A validly-written state file is corrupted (one byte flipped) before boot(). Expected: seal verify fails, record discarded, boot proceeds (fail-open), BootReport::Started.state_alert = StateCorruptReestablishing{..}. No field from the corrupt record is consumed (hydrate_from_state is a no-op on Corrupt outcome). ADR_011 Section 3.2.3.1 item 4 (ii): corrupt = fail-open, louder alert, discard entire record (no partial trust in a broken seal).",
+      "fixture_source": "synoi-daemon/src/tests.rs::boot_state_corrupt_fail_open",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL (SHIPPED-against-test-keys). No attacker-controlled field from a corrupt record reaches the loader. State alert surfaces in BootReport::Started.state_alert."
+    },
+    {
+      "name": "boot-state-write-on-advance",
+      "tag": "boot_state_write_on_advance",
+      "status": "PARTIAL",
+      "status_runner": "NOT-EXECUTABLE-IN-RUNNER",
+      "expected": "boot() started with persisted HWM=5; stage-5 applies seq=6 list (no matching bundle -> no RefuseToStart); loader HWM advances to 6; write_state_with_signer called; round-trip read returns HWM=6",
+      "description": "Proves the write-after-advance path in boot(). Initial state has HWM=5 (persisted). A genuine disable-list entry with seq=6 (naming no carried bundle) is applied in stage-5. boot() writes the updated state (HWM=6) atomically. A subsequent read_state returns HWM=6. Proves ADR_011 Section 3.2.3.1 item 5 WRITE requirement: write after each verified monotonic advance; atomicity via temp-then-rename; round-trip fidelity.",
+      "fixture_source": "synoi-daemon/src/tests.rs::boot_state_write_on_advance",
+      "cargo_test_pass": true,
+      "claims_note": "PARTIAL (SHIPPED-against-test-keys). Round-trip HWM=6 proved. Write is atomic (write_state_with_signer temp-rename). Production seal key: PAPER/seam."
+    }
+  ],
+  "rollback_residual_note": "A host-root in-place rollback of the state file to a prior validly-sealed record is undetectable in Phase-0 (dr_state_rollback #[ignore] in synoi-genesis persistence_dr_tests; ADR_011 Section 3.2.3.1 item 3). A rolled-back state is operationally authoritative until the first successful live refresh re-raises the HWM/LKG/epoch. Full anti-rollback requires a hardware monotonic counter (TPM/secure-element, Section 7) OR a witnessed transparency-log anchor (ADR_012 Section 4, project_translog_witnessing_transition). Neither exists in Phase-0. The boot() wiring DOES NOT claim to close rollback. The #[ignore] companion in synoi-genesis documents the honest limit as a paired negative vector.",
+  "banked_follow_ups": [
+    "runner-wiring: wire DR vectors into conformance runner.ts against a built daemon binary (NOT-EXECUTABLE-IN-RUNNER -> PARTIAL/runner-SHIPPED transition)",
+    "stage-6 render loop epoch wiring: replace last_seen_epoch_from_state=0 seam at stage6_render_loop.rs:466 with a value from hydrate_from_state; proved at boot-level by synoi-genesis::dr_epoch1 (PARTIAL-against-test-keys); stage6 binary builds keys from scratch each run so a persisted round-trip needs additional wiring (banked follow-up; do not force a large stage6 refactor in this slice)",
+    "production seal key: replace TestStateSealSigner (seed [17]/[18]) with HKDF-SHA-256 over compiled-in image key + per-install OS-keystore salt (PAPER/seam, ADR_011 Section 3.2.3.1 item 2); gates on Section 9 KMS/ops precondition",
+    "anti-rollback FULL: wire hardware monotonic counter (TPM/secure-element) OR witnessed transparency-log anchor (ADR_012 Section 4); both PAPER in Phase-0",
+    "stage-5a Security+Adversary panel: CLEARED 2026-06-21 for the SINGLE-SESSION property (ADR_013 Section 6); DR-8 enforcement now PARTIAL-against-test-keys single-session. Cross-restart A-1/B-1 now PARTIAL-against-test-keys via boot_persist_replay_no_rebrick + boot_persist_lkg_dark_channel."
+  ]
+}

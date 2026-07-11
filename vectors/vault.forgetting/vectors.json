@@ -1,0 +1,47 @@
+[
+  {
+    "name": "vault.forgetting.tombstone_before_delete",
+    "kind": "vault.forgetting.tombstone_before_delete",
+    "description": "All three writes (tombstone CDRO, vault_journal INSERT, body DELETE) happen inside one BEGIN EXCLUSIVE transaction. Any failure rolls back all three atomically. On journal-append failure: body survives, NO tombstone is written, NO journal entry is written (full rollback, not partial commit). The live-receipt check is inside the same exclusive transaction (TOCTOU-closed). As of commit 4ce5c70, the tombstone receipt is hybrid-signed (Ed25519 + ML-DSA-65) and independently verifiable via verifyTombstoneReceiptSignature.",
+    "normative": true,
+    "source": "VAULT_COMPOUNDING_SUBSTRATE_SPEC.md section 6.4 Rule B, section 6.6",
+    "executable_runner": "test/vault.forgetting.tombstone_before_delete.test.ts",
+    "status": "SHIPPED",
+    "assertions": [
+      "success path: tombstone decision_receipt CDRO written, journal entry written, body deleted atomically",
+      "journal-append failure: full rollback -- body survives, no tombstone written, no journal entry written",
+      "live-receipt check inside BEGIN EXCLUSIVE closes TOCTOU window; body with live superseding ref is NOT pruned",
+      "idempotent: second safePrune on already-tombstoned object returns pruned:false, skip_reason:tombstone_exists",
+      "signature verifiable: safePrune-produced tombstone receipt verifies via verifyTombstoneReceiptSignature (Ed25519 + ML-DSA-65 against vault public keys) = true; any field tampered (reason, decision, scope) verifies = false"
+    ]
+  },
+  {
+    "name": "vault.forgetting.governance_exempt",
+    "kind": "vault.forgetting.governance_exempt",
+    "description": "decision_receipt, gateway_manifest, and license CDROs must NEVER be selected as prune candidates regardless of stability or resonance score. safePrune returns skip_reason:governance_exempt and writes no tombstone and deletes nothing. runTTLCleanup also excludes governance types regardless of ttl_expires_at.",
+    "normative": true,
+    "source": "VAULT_COMPOUNDING_SUBSTRATE_SPEC.md section 6.7",
+    "executable_runner": "test/vault.forgetting.governance_exempt.test.ts",
+    "status": "SHIPPED",
+    "assertions": [
+      "decision_receipt: safePrune returns pruned:false, skip_reason:governance_exempt; body survives; no tombstone written; vault_journal empty",
+      "gateway_manifest: safePrune returns pruned:false, skip_reason:governance_exempt; body survives; no tombstone written; vault_journal empty",
+      "license: safePrune returns pruned:false, skip_reason:governance_exempt; body survives; no tombstone written; vault_journal empty",
+      "runTTLCleanup does NOT delete any of decision_receipt/gateway_manifest/license even when ttl_expires_at is in the past; non-governance CDROs with past TTL ARE deleted"
+    ]
+  },
+  {
+    "name": "vault.forgetting.erasure_resistance",
+    "kind": "vault.forgetting.erasure_resistance",
+    "description": "Per-(oid,scope,time-window) rate cap on recordHit prevents callers from spiking resonance weight. The cap is enforced both in-process and via a persistent SQLite hit_rate_cap table so it holds across multiple EdgeStore instances over the same DB. Governance types are unconditionally non-prunable via prunable().",
+    "normative": true,
+    "source": "VAULT_COMPOUNDING_SUBSTRATE_SPEC.md section 6.7",
+    "executable_runner": "test/vault.forgetting.erasure_resistance.test.ts",
+    "status": "SHIPPED",
+    "assertions": [
+      "recordHit calls beyond HIT_RATE_CAP_PER_WINDOW (20) per (oid,scope,window) are rejected without modifying hit_count; hit_count does not increase past cap even under a flood of 100x excess calls",
+      "DB-backed cap (checkHitRateCapDB) rejects hits beyond cap across two separate EdgeStore instances over the same DB file (cross-process property)",
+      "prunable() returns false for decision_receipt, gateway_manifest, and license at all stability values including 2.0"
+    ]
+  }
+]

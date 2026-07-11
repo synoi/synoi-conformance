@@ -1,0 +1,77 @@
+{
+  "description": "Revocation-epoch cache-admit conformance vectors (ADR_005 Section 5.7, iter-12). GV-EPOCH-1..6,8 are runner-backed via the epoch-gv binary (synoi-gateway/runtime/carrier/src/bin/epoch_gv.rs), which exercises gate_decision_cache_admit() with deterministic JSON inputs. GV-EPOCH-7 (TS bump-rule) is TS-test-backed via synoi-gateway/test/consult-epoch.test.ts and is NOT runner-shelled from this fixture.",
+  "status_summary": {
+    "GV-EPOCH-1": "runner-backed via epoch-gv (stale-epoch-reconsulted)",
+    "GV-EPOCH-2": "runner-backed via epoch-gv (epoch-equal-served)",
+    "GV-EPOCH-3": "runner-backed via epoch-gv (epoch-greater-adopts-and-serves)",
+    "GV-EPOCH-4": "runner-backed via epoch-gv (cache-admit layer); verify_gate_decision tamper-reject layer additionally covered by cargo test gv_epoch_4_signed_epoch_tamper_reject",
+    "GV-EPOCH-5": "runner-backed via epoch-gv (epoch-monotonic-never-decreases)",
+    "GV-EPOCH-6": "runner-backed via epoch-gv (missing-epoch-fail-closed)",
+    "GV-EPOCH-7": "TS-test-backed via synoi-gateway/test/consult-epoch.test.ts (GV-EPOCH-7-TS); not runner-shelled from this fixture",
+    "GV-EPOCH-8": "runner-backed via epoch-gv (sensitive-kind-ignores-epoch)"
+  },
+  "notes": {
+    "gv_epoch_7_ts": "GV-EPOCH-7 tests the TS-side bump rule: markProvisionallyBlocked() bumps revocation_epoch (allow-to-deny); unblockProvisionally() does not. This is a Node/gateway test (consult-epoch.test.ts), not a Rust cache-admit vector. The runner does not shell to it; it stays TS-test-backed.",
+    "gv_epoch_4_layered": "GV-EPOCH-4 has two defense layers: (1) verify_gate_decision rejects tampered core as PayloadCoreMismatch (cargo test), (2) cache_admit catches stale epoch even for a tampered value that bypassed sig-verify. epoch-gv covers layer 2 only.",
+    "rebind_fixture": "The gate-consult-rebind.json fixture was audited against consult-gate-router.ts. The gateway's GateDecisionContentCore DOES include revocation_epoch: number (main branch, line 140). The _gen-gate-consult-rebind.ts generator baseContentCore is MISSING this field and must be updated + regenerated."
+  },
+  "vectors": [
+    {
+      "name": "gv-epoch-1-stale-epoch-reconsulted",
+      "tag": "GV-EPOCH-1",
+      "claim": "decision_epoch(4) < last_seen_epoch(7) must return MustReconsult(StaleEpoch)",
+      "expected": "PASS",
+      "status": "runner-backed"
+    },
+    {
+      "name": "gv-epoch-2-epoch-equal-served",
+      "tag": "GV-EPOCH-2",
+      "claim": "decision_epoch(7) == last_seen_epoch(7) must return ServeFromCache (within max-age, not sensitive)",
+      "expected": "PASS",
+      "status": "runner-backed"
+    },
+    {
+      "name": "gv-epoch-3-epoch-greater-adopts-and-serves",
+      "tag": "GV-EPOCH-3",
+      "claim": "decision_epoch(9) > last_seen_epoch(7) must return ServeFromCache (host was behind)",
+      "expected": "PASS",
+      "status": "runner-backed"
+    },
+    {
+      "name": "gv-epoch-4-signed-epoch-tamper-reject",
+      "tag": "GV-EPOCH-4",
+      "claim": "tampered epoch=3 with host=7 must return MustReconsult(StaleEpoch); cache-admit second defense layer",
+      "expected": "PASS",
+      "status": "runner-backed"
+    },
+    {
+      "name": "gv-epoch-5-epoch-monotonic-never-decreases",
+      "tag": "GV-EPOCH-5",
+      "claim": "poll sequence 3,5,4,5 leaves hwm=5; epoch=4 and epoch=3 are stale; epoch=5 serves",
+      "expected": "PASS",
+      "status": "runner-backed"
+    },
+    {
+      "name": "gv-epoch-6-missing-epoch-fail-closed",
+      "tag": "GV-EPOCH-6",
+      "claim": "missing / string / negative revocation_epoch all return MustReconsult(MissingOrBadEpoch)",
+      "expected": "PASS",
+      "status": "runner-backed"
+    },
+    {
+      "name": "gv-epoch-7-bump-on-allow-to-deny-only",
+      "tag": "GV-EPOCH-7",
+      "claim": "markProvisionallyBlocked() bumps revocation_epoch; unblockProvisionally() does not",
+      "expected": "TS-backed",
+      "status": "TS-backed",
+      "note": "Backed by synoi-gateway/test/consult-epoch.test.ts (GV-EPOCH-7-TS). Not runner-shelled from here."
+    },
+    {
+      "name": "gv-epoch-8-sensitive-kind-ignores-epoch",
+      "tag": "GV-EPOCH-8",
+      "claim": "revocation-sensitive kind returns RevocationSensitiveKind regardless of epoch value; sensitivity check runs before epoch check",
+      "expected": "PASS",
+      "status": "runner-backed"
+    }
+  ]
+}

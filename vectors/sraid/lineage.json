@@ -1,0 +1,94 @@
+[
+  {
+    "name": "links: prev coalesces with identical supersedes to one supersedes edge",
+    "kind": "lineage",
+    "mode": "links",
+    "object": {
+      "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "supersedes": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "expected_links": [
+      { "rel": "supersedes", "oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    ]
+  },
+  {
+    "name": "links: prev + typed links preserved, supersession edge first",
+    "kind": "lineage",
+    "mode": "links",
+    "object": {
+      "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "links": [
+        { "rel": "derived_from", "oid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        { "rel": "consolidated_from", "oid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" }
+      ]
+    },
+    "expected_links": [
+      { "rel": "supersedes", "oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "rel": "derived_from", "oid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      { "rel": "consolidated_from", "oid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" }
+    ]
+  },
+  {
+    "name": "links: empty when no lineage fields present",
+    "kind": "lineage",
+    "mode": "links",
+    "object": { "type": "sraid:test" },
+    "expected_links": []
+  },
+  {
+    "name": "latest_wins: linear chain resolves to newest head",
+    "kind": "lineage",
+    "mode": "latest_wins",
+    "versions": [
+      { "oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "oid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "oid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "prev": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+    ],
+    "expected_ok": true,
+    "expected_head": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  {
+    "name": "latest_wins: order-independent (replayed predecessor is not head)",
+    "kind": "lineage",
+    "mode": "latest_wins",
+    "versions": [
+      { "oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "oid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "prev": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      { "oid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    ],
+    "expected_ok": true,
+    "expected_head": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  {
+    "name": "latest_wins: legacy supersedes string resolves head identically to prev",
+    "kind": "lineage",
+    "mode": "latest_wins",
+    "versions": [
+      { "oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "oid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "supersedes": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    ],
+    "expected_ok": true,
+    "expected_head": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  {
+    "name": "latest_wins: fork (two concurrent heads) has no single latest",
+    "kind": "lineage",
+    "mode": "latest_wins",
+    "versions": [
+      { "oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "oid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+      { "oid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    ],
+    "expected_ok": false
+  },
+  {
+    "name": "latest_wins: supersession cycle has no head",
+    "kind": "lineage",
+    "mode": "latest_wins",
+    "versions": [
+      { "oid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "prev": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+      { "oid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "prev": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
+    ],
+    "expected_ok": false
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "status": "PARTIAL",
+  "status_runner": "runner-SHIPPED when the carrier-gv binary is present; NOT-EXECUTABLE-IN-RUNNER otherwise",
+  "status_caveat": "ENVIRONMENT-CONDITIONAL. These nine GV vectors exercise the carrier VERIFY-PATH logic (ADR_011 Section 10.2.2 steps 1-8: manifest carrier-pin, carrier hybrid attestation, gate-signer key extraction, sequence anti-replay against an in-memory high-water mark, validity window, gate-decision verify under the carrier-extracted key, and rotation). As of synoi-conformance e34dcc8 + synoi-gateway 3304ef4 the runner shells to the carrier-gv binary when present and reports GV-20..GV-28 PASS from live binary output (12/12 cargo tests + 9/9 runner PASS, confirmed 2026-06-20 this environment, binary present). In a toolchain-less environment the binary is absent and every GV vector reports NOT-EXECUTABLE-IN-RUNNER; no fake pass is ever emitted. SCOPE: this is the verify-path claim against TEST KEYS ONLY. It is NOT the integrated carrier-rooted genesis boot, which additionally needs GV-1..GV-19 (genesis loader, PAPER), live KMS keys provisioned under two-person quorum (ADR_011 Section 9.1, OPEN operational precondition), production-hardened HWM persistence (in-memory test-only today, ADR_011 Section 10.3), and the live gateway round-trip (NOT wired). Per CLAIMS_DISCIPLINE rule 2 the verify-path now meets the runner-backed bar the ADR set; the integrated genesis boot stays PAPER/PARTIAL. Tagged 2026-06-20 by Auditor (iteration-9 sweep).",
+  "vectors": [
+    {
+      "name": "gv-20-carrier-happy-path-accepted",
+      "tag": "GV-20",
+      "expected": "PASS",
+      "description": "Well-formed carrier, both sigs valid, within window, sequence above HWM. Expected: ACCEPT; gate-signer key cached; sequence=1."
+    },
+    {
+      "name": "gv-21-carrier-signer-not-chained-to-genesis-rejected",
+      "tag": "GV-21",
+      "expected": "PASS",
+      "description": "Carrier signed by a key whose OID is not the manifest-pinned carrier_signing_signer_oid. Expected: REFUSE; reason carrier-signer-not-chained-to-genesis; no gate-consult under this key set."
+    },
+    {
+      "name": "gv-22-carrier-stripped-ml-dsa-rejected",
+      "tag": "GV-22",
+      "expected": "PASS",
+      "description": "Carrier carrying only an Ed25519 signature (ML-DSA-65 entry removed). Expected: REFUSE; reason missing-ml-dsa-65; NEVER accepted on Ed25519 alone."
+    },
+    {
+      "name": "gv-23-carrier-wrong-payloadType-rejected",
+      "tag": "GV-23",
+      "expected": "PASS",
+      "description": "Carrier signed with payloadType=genesis-manifest (not gate-signer-carrier). PAE-binding closes cross-type confused-deputy hazard. Expected: REFUSE; reason carrier-attestation-failed."
+    },
+    {
+      "name": "gv-24-carrier-replayed-lower-sequence-rejected",
+      "tag": "GV-24",
+      "expected": "PASS",
+      "description": "Previously-applied carrier (sequence=1) replayed after HWM advanced to 1. Expected: REFUSE; reason carrier-replay; HWM not lowered."
+    },
+    {
+      "name": "gv-25-carrier-window-rejected",
+      "tag": "GV-25",
+      "expected": "PASS",
+      "description": "Carrier with not_before in future (sub-case A) and carrier with not_after in past (sub-case B). Expected: REFUSE; reason carrier-window for both sub-cases."
+    },
+    {
+      "name": "gv-26-gate-decision-verified-under-carrier-key-accepted",
+      "tag": "GV-26",
+      "expected": "PASS",
+      "description": "GateDecision signed by gate-signer key from accepted carrier (GV-20). Expected: ACCEPT; both sigs AND-verify under carrier-extracted key; ADR_005 Sec 5.1 rebind passes."
+    },
+    {
+      "name": "gv-27-gate-decision-under-stale-carrier-rejected",
+      "tag": "GV-27",
+      "expected": "PASS",
+      "description": "GateDecision signed by gate-signer key from superseded carrier (seq=1). New carrier (seq=2) installs a different gate-signer key. Old GateDecision presented after rotation. Expected: REFUSE; reason untrusted-signer; rotated-out key rejected."
+    },
+    {
+      "name": "gv-28-manifest-missing-carrier-pin-rejected",
+      "tag": "GV-28",
+      "expected": "PASS",
+      "description": "Genesis manifest that verifies image-signing signature but omits carrier_signing_signer_oid (sub-case A: absent; sub-case B: empty string). Expected: REFUSE TO START; reason manifest-missing-carrier-pin. NOT treated as carrier feature off."
+    },
+    {
+      "name": "gv-30-receipt-typed-dsse-rejected-as-gate-decision",
+      "tag": "GV-30",
+      "expected": "PASS",
+      "description": "CONFUSED-DEPUTY NEGATIVE VECTOR (Finding-5 iter-12 closure). A validly hybrid-signed DSSE envelope over a GateDecision-shaped content core, signed with payloadType=application/vnd.synoi.sraid+json (the receipt type) using the SAME gate-signer test keypair as GV-26. The ONLY defect is the payloadType. verify_gate_decision pins GATE_DECISION_PAYLOAD_TYPE; PAE-binding makes the receipt signatures invalid under the gate-decision PAE. Expected: REFUSE; reason UntrustedSigner(PayloadTypeMismatch). This is the direction: RECEIPT presented AS GateDecision. The payloadType-pin is the mechanism; this is the vector that makes the confused-deputy closure vector-proven in that direction."
+    }
+  ]
+}

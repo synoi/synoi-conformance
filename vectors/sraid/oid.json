@@ -1,0 +1,94 @@
+[
+  {
+    "name": "empty object",
+    "kind": "oid",
+    "input": {},
+    "expected_oid": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  {
+    "name": "flat object out-of-order keys",
+    "kind": "oid",
+    "input": {
+      "b": 1,
+      "a": "hi"
+    },
+    "expected_oid": "sha256:e3a4e821d4a31c0723ec7316d9fe4edd6709f0a3f0f7a18a8013fad7850fdfe9"
+  },
+  {
+    "name": "nested object",
+    "kind": "oid",
+    "input": {
+      "outer": {
+        "inner": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    "expected_oid": "sha256:9039124e2e25c1515627c1cb592987e89bd3adfb61155f13f1abdfc38772fcdf"
+  },
+  {
+    "name": "array of objects",
+    "kind": "oid",
+    "input": [
+      {
+        "x": 1
+      },
+      {
+        "x": 2
+      }
+    ],
+    "expected_oid": "sha256:33e09bfbb74384796e37a25d972b0c7731f1e00f81cd9ff2a1b243486052d3c7"
+  },
+  {
+    "name": "integer",
+    "kind": "oid",
+    "input": 42,
+    "expected_oid": "sha256:73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049"
+  },
+  {
+    "name": "string with embedded quote",
+    "kind": "oid",
+    "input": "has \"quote\" inside",
+    "expected_oid": "sha256:708fbb1bb1976a1d93d6a22b42164ae84887f468fb81b6079ddb18601d8ed253"
+  },
+  {
+    "name": "string with unicode snowman",
+    "kind": "oid",
+    "input": "snowman ☃",
+    "expected_oid": "sha256:3fce572b141a71a8dad0fdfcdcea2b5409da975d45cb01ec54380cbd5ff8f511"
+  },
+  {
+    "name": "mixed types",
+    "kind": "oid",
+    "input": {
+      "s": "x",
+      "n": 1,
+      "b": true,
+      "nu": null,
+      "a": [
+        1,
+        2
+      ]
+    },
+    "expected_oid": "sha256:dbc79bd04d913b596b310b5197d9c66c1178845d4fa6d042cfc273a60e98a62a"
+  },
+  {
+    "name": "oid determinism: same input twice yields identical oid",
+    "kind": "oid_determinism",
+    "input": {
+      "tenant_id": "oid-det-tenant",
+      "n": 7,
+      "nested": {
+        "a": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    "expected_oid_1": "sha256:82204694c514d1f51d10b7ff704e619fb4976a015a89fad4b1ef1d27889ba4cc",
+    "expected_oid_2": "sha256:82204694c514d1f51d10b7ff704e619fb4976a015a89fad4b1ef1d27889ba4cc"
+  }
+]

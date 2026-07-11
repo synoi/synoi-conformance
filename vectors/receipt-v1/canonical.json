@@ -1,0 +1,160 @@
+[
+  {
+    "name": "ascii",
+    "kind": "receipt_v1_canonical",
+    "canonical_fields": [
+      "action_class",
+      "decision",
+      "oid_hex",
+      "receipt_id",
+      "recorded_at",
+      "risk_level",
+      "tenant_id"
+    ],
+    "optional_canonical_fields": [
+      "gateway_manifest_sha256"
+    ],
+    "receipt": {
+      "receipt_id": "rcpt_ascii_01",
+      "tenant_id": "founder",
+      "decision": "allow",
+      "action_class": "B",
+      "risk_level": "low",
+      "oid_hex": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+      "recorded_at": 1747584000000
+    },
+    "expected_canonical": "{\"action_class\":\"B\",\"decision\":\"allow\",\"oid_hex\":\"sha256:0101010101010101010101010101010101010101010101010101010101010101\",\"receipt_id\":\"rcpt_ascii_01\",\"recorded_at\":1747584000000,\"risk_level\":\"low\",\"tenant_id\":\"founder\"}"
+  },
+  {
+    "name": "unicode_tenant_and_action_class",
+    "kind": "receipt_v1_canonical",
+    "canonical_fields": [
+      "action_class",
+      "decision",
+      "oid_hex",
+      "receipt_id",
+      "recorded_at",
+      "risk_level",
+      "tenant_id"
+    ],
+    "optional_canonical_fields": [
+      "gateway_manifest_sha256"
+    ],
+    "receipt": {
+      "receipt_id": "rcpt_uni_01",
+      "tenant_id": "tенант-Ünïcøde",
+      "decision": "deny",
+      "action_class": "nét-wörk",
+      "risk_level": "high",
+      "oid_hex": "sha256:abababababababababababababababababababababababababababababababab",
+      "recorded_at": 1747584000001
+    },
+    "expected_canonical": "{\"action_class\":\"nét-wörk\",\"decision\":\"deny\",\"oid_hex\":\"sha256:abababababababababababababababababababababababababababababababab\",\"receipt_id\":\"rcpt_uni_01\",\"recorded_at\":1747584000001,\"risk_level\":\"high\",\"tenant_id\":\"tенант-Ünïcøde\"}"
+  },
+  {
+    "name": "emoji_action_class",
+    "kind": "receipt_v1_canonical",
+    "canonical_fields": [
+      "action_class",
+      "decision",
+      "oid_hex",
+      "receipt_id",
+      "recorded_at",
+      "risk_level",
+      "tenant_id"
+    ],
+    "optional_canonical_fields": [
+      "gateway_manifest_sha256"
+    ],
+    "receipt": {
+      "receipt_id": "rcpt_emoji_01",
+      "tenant_id": "t1",
+      "decision": "allow",
+      "action_class": "deploy-🚀",
+      "risk_level": "medium",
+      "oid_hex": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "recorded_at": 1747584000002
+    },
+    "expected_canonical": "{\"action_class\":\"deploy-🚀\",\"decision\":\"allow\",\"oid_hex\":\"sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\",\"receipt_id\":\"rcpt_emoji_01\",\"recorded_at\":1747584000002,\"risk_level\":\"medium\",\"tenant_id\":\"t1\"}"
+  },
+  {
+    "name": "large_int_recorded_at_max_safe",
+    "kind": "receipt_v1_canonical",
+    "canonical_fields": [
+      "action_class",
+      "decision",
+      "oid_hex",
+      "receipt_id",
+      "recorded_at",
+      "risk_level",
+      "tenant_id"
+    ],
+    "optional_canonical_fields": [
+      "gateway_manifest_sha256"
+    ],
+    "receipt": {
+      "receipt_id": "rcpt_bigint_01",
+      "tenant_id": "t1",
+      "decision": "allow",
+      "action_class": "B",
+      "risk_level": "low",
+      "oid_hex": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+      "recorded_at": 9007199254740991
+    },
+    "expected_canonical": "{\"action_class\":\"B\",\"decision\":\"allow\",\"oid_hex\":\"sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\",\"receipt_id\":\"rcpt_bigint_01\",\"recorded_at\":9007199254740991,\"risk_level\":\"low\",\"tenant_id\":\"t1\"}"
+  },
+  {
+    "name": "with_gateway_manifest_sha256",
+    "kind": "receipt_v1_canonical",
+    "canonical_fields": [
+      "action_class",
+      "decision",
+      "oid_hex",
+      "receipt_id",
+      "recorded_at",
+      "risk_level",
+      "tenant_id"
+    ],
+    "optional_canonical_fields": [
+      "gateway_manifest_sha256"
+    ],
+    "receipt": {
+      "receipt_id": "rcpt_manifest_01",
+      "tenant_id": "founder",
+      "decision": "allow",
+      "action_class": "B",
+      "risk_level": "low",
+      "oid_hex": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+      "recorded_at": 1747584000003,
+      "gateway_manifest_sha256": "sha256:bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe"
+    },
+    "expected_canonical": "{\"action_class\":\"B\",\"decision\":\"allow\",\"gateway_manifest_sha256\":\"sha256:bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe\",\"oid_hex\":\"sha256:0101010101010101010101010101010101010101010101010101010101010101\",\"receipt_id\":\"rcpt_manifest_01\",\"recorded_at\":1747584000003,\"risk_level\":\"low\",\"tenant_id\":\"founder\"}"
+  },
+  {
+    "name": "null_authority_field_omitted",
+    "kind": "receipt_v1_canonical",
+    "canonical_fields": [
+      "action_class",
+      "decision",
+      "oid_hex",
+      "receipt_id",
+      "recorded_at",
+      "risk_level",
+      "tenant_id"
+    ],
+    "optional_canonical_fields": [
+      "gateway_manifest_sha256"
+    ],
+    "receipt": {
+      "receipt_id": "rcpt_null_01",
+      "tenant_id": "t1",
+      "decision": "allow",
+      "action_class": "B",
+      "risk_level": "low",
+      "oid_hex": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+      "recorded_at": 1747584000004,
+      "gateway_manifest_sha256": null
+    },
+    "expected_canonical": "{\"action_class\":\"B\",\"decision\":\"allow\",\"oid_hex\":\"sha256:0202020202020202020202020202020202020202020202020202020202020202\",\"receipt_id\":\"rcpt_null_01\",\"recorded_at\":1747584000004,\"risk_level\":\"low\",\"tenant_id\":\"t1\"}"
+  }
+]

@@ -1,0 +1,19 @@
+=== fabric-crossenv: cross-language, cross-implementation chain verify ===
+
+R1 (Rust, Runtime A)   oid = sha256:4cd6c7591a4625585656de0302278ee6603752164ef330ca88902cb34a86c137  subject=governed-action.allowed
+R2 (TypeScript, Runtime B) oid = sha256:9275bbc48d138ece3e312d75c7537a24473e094863ea148847948e8e51f173a5
+R2.prev                    = sha256:4cd6c7591a4625585656de0302278ee6603752164ef330ca88902cb34a86c137
+
+PASS  bundle-valid
+PASS  r1-verifies-both-algs
+PASS  r2-verifies-both-algs
+PASS  r1-and-r2-different-signer-keys
+PASS  chain-linked-r2-prev-equals-r1-oid
+PASS  chain-crosses-two-distinct-action-classes
+PASS  chain-crosses-two-languages
+
+PASS  tamper-r1-payload-byte-flip-rejected
+PASS  tamper-r1-signature-invalid-not-vacuously-skipped
+PASS  tamper-r2-body-field-edit-without-resign-rejected
+
+--- 10 passed, 0 failed ---

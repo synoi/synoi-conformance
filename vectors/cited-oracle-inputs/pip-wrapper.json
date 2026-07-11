@@ -1,0 +1,338 @@
+[
+  {
+    "name": "pip_wrapper: weather adapter fetch returns valid FeedResult",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "weather",
+    "subject_value": "84045",
+    "mock_upstream_response": {
+      "main": { "temp": 25.56 },
+      "dt": 1750189860
+    },
+    "mock_upstream_status": 200,
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": ["observed_at", "temp_f"],
+      "value_hash_prefix": "sha256:",
+      "fetched_at_pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "source_url_contains": "openweathermap.org"
+    },
+    "notes": [
+      "raw_value.temp_f must be a number (Celsius-to-Fahrenheit conversion from mock main.temp).",
+      "raw_value.observed_at must be RFC 3339 UTC ms derived from mock dt (Unix epoch seconds).",
+      "value_hash = sha256(JCS(raw_value)) computed by the adapter.",
+      "source_url must strip the API key query param before placing in FeedResult.source_url.",
+      "FeedResult.raw_value is a JCS-canonical JSON string, not a parsed object."
+    ]
+  },
+  {
+    "name": "pip_wrapper: weather adapter upstream 5xx returns source_unavailable error",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "weather",
+    "subject_value": "84045",
+    "mock_upstream_status": 503,
+    "mock_upstream_response": null,
+    "expected_result_ok": false,
+    "expected_error_kind": "source_unavailable",
+    "notes": [
+      "Gate fails closed on source_unavailable for weather per spec Section 2.6.",
+      "A denial receipt is emitted; no oracle value is cited (unavailable).",
+      "Spec Section 2.6: partial citation for source_unavailable uses raw_value={error:'source_unavailable'}."
+    ]
+  },
+  {
+    "name": "pip_wrapper: OFAC adapter no-match returns valid FeedResult with match empty",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "ofac",
+    "subject_value": "John Smith",
+    "mock_vault_snapshot": {
+      "list_version": "2026-06-17-1",
+      "sdn_entries": []
+    },
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": ["list_version", "match", "matched", "query"],
+      "raw_value_match_is_empty_array": true,
+      "value_hash_prefix": "sha256:",
+      "source_url_scheme": "vault://"
+    },
+    "notes": [
+      "S1.4: raw_value now includes 'matched' boolean and optional 'matched_record' per deliverable 4.",
+      "match: [] (empty array) means no SDN hit. Invocation receipt is emitted.",
+      "source_url must use vault:// scheme when the gate reads from an offline snapshot.",
+      "raw_value.query carries the recipient name (PII); tenant-scoped storage required."
+    ]
+  },
+  {
+    "name": "pip_wrapper: OFAC adapter match found returns valid FeedResult with match populated",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "ofac",
+    "subject_value": "Vladimir Putin",
+    "mock_vault_snapshot": {
+      "list_version": "2026-06-17-1",
+      "sdn_entries": [
+        { "name": "PUTIN, Vladimir", "entry_hash": "sdn:abc123hash" }
+      ]
+    },
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": ["list_version", "match", "matched", "query"],
+      "raw_value_match_min_length": 1,
+      "value_hash_prefix": "sha256:",
+      "source_url_scheme": "vault://"
+    },
+    "notes": [
+      "S1.4: raw_value now includes 'matched' boolean and optional 'matched_record' per deliverable 4.",
+      "match contains SDN entry hashes, not the full SDN entries.",
+      "Gate emits a denial receipt when OFAC match is non-empty.",
+      "source_cursor in the FeedResult must carry the list_version."
+    ]
+  },
+  {
+    "name": "pip_wrapper: time adapter returns valid FeedResult",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "time",
+    "subject_value": "America/Denver",
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": ["now_utc", "tz"],
+      "raw_value_tz": "America/Denver",
+      "value_hash_prefix": "sha256:",
+      "source_url": "system:monotonic-clock",
+      "fetched_at_equals_now_utc": true
+    },
+    "notes": [
+      "subject_value is the IANA timezone string, mirrored into raw_value.tz.",
+      "source_url is always 'system:monotonic-clock' for the time adapter.",
+      "fetched_at must equal raw_value.now_utc (gate-recorded at moment of read)."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook adapter http kind returns valid FeedResult (allow:true)",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "https://example.com/synoi-check",
+    "mock_upstream_status": 200,
+    "mock_upstream_response_body": "{\"allow\":true}",
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": [
+        "endpoint_kind",
+        "request_body_hash",
+        "response_body_hash",
+        "response_status",
+        "called_at",
+        "url",
+        "status_code_or_eval_result"
+      ],
+      "raw_value_endpoint_kind": "http",
+      "raw_value_status_code": 200,
+      "value_hash_prefix": "sha256:",
+      "source_url_equals_subject_value": true
+    },
+    "notes": [
+      "Response body is NOT in raw_value; only response_body_hash is cited (PII boundary).",
+      "status_code_or_eval_result is a number (200) for http kind.",
+      "request_body_hash = sha256(JSON payload POSTed to webhook URL).",
+      "response_body_hash = sha256(raw response text); binds signed receipt to the actual response.",
+      "called_at = RFC 3339 UTC ms timestamp of the POST.",
+      "url = the webhook subject_value (for audit trail).",
+      "Plaintext http:// subject_value must be rejected (TLS required per spec Section 1.8)."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook adapter http kind returns valid FeedResult (allow:false / deny path)",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "https://example.com/synoi-check",
+    "mock_upstream_status": 200,
+    "mock_upstream_response_body": "{\"allow\":false}",
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": [
+        "endpoint_kind",
+        "request_body_hash",
+        "response_body_hash",
+        "response_status",
+        "called_at",
+        "url",
+        "status_code_or_eval_result"
+      ],
+      "raw_value_endpoint_kind": "http",
+      "raw_value_status_code": 200,
+      "value_hash_prefix": "sha256:",
+      "source_url_equals_subject_value": true
+    },
+    "notes": [
+      "Adapter returns ok=true regardless of allow value; the gate acts on allow.",
+      "The signed receipt cites response_body_hash which is bound to the {allow:false} body.",
+      "The verifier can independently confirm the response body was {allow:false}."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook adapter returns source_unavailable on HTTP 5xx",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "https://example.com/synoi-check",
+    "mock_upstream_status": 503,
+    "mock_upstream_response_body": "Service Unavailable",
+    "expected_result_ok": false,
+    "expected_error_kind": "source_unavailable",
+    "notes": [
+      "Non-2xx HTTP status returns source_unavailable.",
+      "Gate fails closed on source_unavailable."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook adapter returns source_format_drift on non-JSON response",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "https://example.com/synoi-check",
+    "mock_upstream_status": 200,
+    "mock_upstream_response_body": "not json at all",
+    "expected_result_ok": false,
+    "expected_error_kind": "source_format_drift",
+    "notes": [
+      "Non-JSON response body returns source_format_drift.",
+      "Gate fails closed; denial receipt emitted."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook adapter returns source_format_drift on wrong response shape",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "https://example.com/synoi-check",
+    "mock_upstream_status": 200,
+    "mock_upstream_response_body": "{\"foo\":1}",
+    "expected_result_ok": false,
+    "expected_error_kind": "source_format_drift",
+    "notes": [
+      "Response JSON missing required {allow: boolean} returns source_format_drift.",
+      "Gate fails closed; denial receipt emitted."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook adapter rejects plaintext http URL",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "http://insecure.example.com/check",
+    "expected_result_ok": false,
+    "expected_error_kind": "policy_fail_closed",
+    "notes": [
+      "Spec Section 1.8: reject plaintext HTTP for any non-system: and non-vault:// source_url.",
+      "Gate fails closed: denial receipt with feed_policy_decline.",
+      "This is the TLS enforcement boundary test."
+    ]
+  },
+  {
+    "name": "pip_wrapper: FeedResult value_hash verified by gate before receipt sign",
+    "kind": "pip_wrapper_gate_boundary",
+    "description": "The gate recomputes sha256(JCS(JSON.parse(feed_result.raw_value))) and compares to feed_result.value_hash before signing the receipt.",
+    "adapter_returns": {
+      "raw_value": "{\"observed_at\":\"2026-06-17T19:31:00.000Z\",\"temp_f\":78}",
+      "value_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "fetched_at": "2026-06-17T19:32:18.412Z",
+      "source_url": "https://api.openweathermap.org/data/2.5/weather?zip=84045"
+    },
+    "expected_gate_action": "emit_denial_receipt",
+    "expected_cited_reason": "adapter_value_hash_mismatch",
+    "notes": [
+      "This is the gate self-check at the adapter boundary per spec Section 2.5.",
+      "A mismatch is a programmer error in the adapter.",
+      "Gate fails closed: denial receipt with cited reason adapter_value_hash_mismatch.",
+      "The correct hash for this raw_value is sha256:7c3ad7bd23c7d62f55d90ca54bcd05d832b5f58c5893f463efcbde9e436b264a."
+    ]
+  },
+  {
+    "name": "pip_wrapper: sms_hitl adapter returns FeedResult for outbound send",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "sms_hitl",
+    "subject_value": "+18015550100",
+    "mock_aws_message_id": "aaaabbbb-cccc-dddd-eeee-ffffffffffff",
+    "mock_aws_inbound_body": "YES",
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": ["body", "direction", "provider_message_sid", "to"],
+      "raw_value_direction": "in",
+      "raw_value_to": "+18015550100",
+      "value_hash_prefix": "sha256:",
+      "source_url_scheme": "aws-sms:"
+    },
+    "notes": [
+      "Transport pivot: Twilio -> AWS End User Messaging (S2.1 Sprint 2).",
+      "The adapter exposes outbound-send + inbound-await as one logical fetch.",
+      "FeedResult.raw_value reflects the inbound reply (direction: in), not the outbound.",
+      "source_url uses aws-sms:<inboundMessageId> scheme (was Twilio API URL before pivot).",
+      "to is E.164 PII; tenant-scoped storage required per spec Section 1.8."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook adapter returns feed_timeout on 10-second HTTP timeout",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "https://example.com/synoi-check",
+    "mock_upstream_timeout": true,
+    "mock_timeout_after_ms": 10000,
+    "expected_result_ok": false,
+    "expected_error_kind": "feed_timeout",
+    "notes": [
+      "C7 / S2.9.",
+      "The webhook adapter has a 10-second timeout per spec Section 2.6.",
+      "When the upstream does not respond within 10 seconds the adapter must return",
+      "  { ok: false, error_kind: 'feed_timeout' }.",
+      "The gate fails closed on feed_timeout: a denial receipt is emitted.",
+      "Falsifiability: remove the timeout or extend it indefinitely. The mock upstream",
+      "  never responds; the adapter hangs and never returns feed_timeout.",
+      "  The vector will time out in the runner and fail with a different error."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook in-browser eval path: snippet_hash binding is end-to-end verified",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "wss://demo.synoi.systems/eval/sess-7f3a",
+    "mock_eval_snippet": "return context.amount < 1000",
+    "mock_eval_snippet_hash": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    "mock_eval_result": { "allow": true },
+    "injection_mode": "in_browser_eval",
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": [
+        "endpoint_kind",
+        "response_body_hash",
+        "status_code_or_eval_result"
+      ],
+      "raw_value_endpoint_kind": "in_browser_eval",
+      "snippet_hash_bound_in_raw_value": true
+    },
+    "notes": [
+      "C7 / S2.9.",
+      "For in-browser eval, the adapter must bind the snippet_hash into raw_value so",
+      "  the signed receipt proves which code ran in the browser.",
+      "raw_value.response_body_hash = sha256(JCS(eval_result)).",
+      "raw_value must carry the snippet_hash field so verifiers can confirm the script.",
+      "Falsifiability: omit snippet_hash from raw_value. The shape assertion",
+      "  snippet_hash_bound_in_raw_value fails because raw_value has no snippet_hash key.",
+      "Spec reference: S2.2 webhook adapter in-browser eval; snippet_hash binding contract."
+    ]
+  },
+  {
+    "name": "pip_wrapper: webhook in-browser eval response shape validation rejects non-boolean allow",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "webhook",
+    "subject_value": "wss://demo.synoi.systems/eval/sess-7f3a",
+    "mock_eval_snippet": "return 'yes'",
+    "mock_eval_snippet_hash": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    "mock_eval_result": { "allow": "yes" },
+    "injection_mode": "in_browser_eval",
+    "expected_result_ok": false,
+    "expected_error_kind": "source_format_drift",
+    "notes": [
+      "C7 / S2.9.",
+      "In-browser eval result must be { allow: boolean }. A string 'yes' is not a boolean.",
+      "The adapter must validate the response shape and return source_format_drift on mismatch.",
+      "Falsifiability: coerce any truthy value to true. The gate accepts 'yes' as allow=true",
+      "  and emits an allow receipt. The expected_result_ok=false assertion fails.",
+      "Spec reference: S2.2 webhook adapter response shape contract."
+    ]
+  }
+]

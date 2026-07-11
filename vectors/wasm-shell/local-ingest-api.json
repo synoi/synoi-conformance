@@ -1,0 +1,387 @@
+{
+  "protocol": "wasm-shell",
+  "version": "1",
+  "status": "PARTIAL-AGAINST-TEST-KEYS",
+  "status_runner": "NOT-EXECUTABLE-IN-RUNNER (runner registers sraid|gap|oid-resolver|inference-broker|cited-oracle-inputs protocols; no local-ingest runner registered). Tests are tsx-backed (Node + Express) in synoi-runtime-wt on branch wasm-runtime. GREEN 2026-06-22 (post-ADR_015 Fix #1 + #2/#3/#4): 59 passed + 30 passed + 29 passed, 0 failed.",
+  "status_caveat": "Loopback enforcement, operator-enrollment (ADR_015 Fix #1: enrolled-membership check + challenge-nonce replay protection + OID-binding + Ed25519 signature verify), deny-on-timeout, transport hardening (#2: Host-header + X-SynOI-Local custom-header + bind note), bundle-grant check (#3, Axis-3 subset), and rate-limit + pending-store cap + sweep batching (#4) are all built and tested with test keys. Tags: #2/#3/#4 PARTIAL (SHIPPED-against-test-keys); pending-panel NOT self-cleared; Axis 3 stays PARTIAL; host-root anti-rollback residual stays PAPER. Production keys PAPER + ceremony-gated (KEY_CEREMONY_RUNBOOK). Per ADR_015 Section 6 honest-tag table.",
+  "task": "ADR_014 Section 3 localhost API + ADR_015 Fix #1 operator enrollment + Fix #2/#3/#4 transport hardening + bundle-grant check + rate-limit",
+  "adr": "ADR_014 Section 3 (localhost API surface), Section 1.1 (governed-action receipt subjects), Section 1.6 (precondition-certificate ordering); ADR_015 Section 5 (mechanical fixes #2/#3/#4, no new contract)",
+  "authored": "2026-06-22",
+  "last_run": "2026-06-22",
+  "run_evidence": [
+    {
+      "command": "npx tsx test/local-ingest-router.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "59 passed, 0 failed",
+      "date": "2026-06-22"
+    },
+    {
+      "command": "npx tsx test/oa-operator-enrollment.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "30 passed, 0 failed",
+      "date": "2026-06-22"
+    },
+    {
+      "command": "npx tsx test/local-ingest-security-2-3-4.test.ts",
+      "cwd": "synoi-runtime-wt",
+      "branch": "wasm-runtime",
+      "result": "29 passed, 0 failed",
+      "date": "2026-06-22"
+    }
+  ],
+
+  "description": "Conformance vectors for the /local/* localhost ingest API per ADR_014 Section 3, with operator-identity enrollment + authorization per ADR_015 Fix #1. Five endpoints: GET /local/health, POST /local/gate (now returns challenge_nonce), GET /local/pending (exposes challenge_nonce), POST /local/decide (requires challenge_nonce; full 4-step chain: OID-binding + enrolled-membership + signature + freshness), GET /local/receipts[/:oid]. ADR_015 Fix #1 closes Attack A: a self-asserted keypair is rejected at the enrolled-membership step before any signature is relevant. The OperatorEnrollmentRecord is sealed with the gateway DSSE hybrid signer (same key as decision receipts) and stored at SYNOI_DATA_DIR/operator-enrollment.json; missing/corrupt -> fail-closed (409 not_enrolled, never fail-open). Challenge nonce (32-byte CSPRNG) is server-issued at /local/gate, returned with the pending action, required in the signed decide payload, and consumed atomically with the decision (single-use; replay -> 404 not_found).",
+
+  "vectors": [
+    {
+      "name": "local-happy-allow",
+      "tag": "LOCAL-INGEST-ALLOW",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (22 assertions, updated for enrolled+nonce flow)",
+      "expected": "PASS",
+      "description": "Happy-allow flow with enrolled operator and challenge nonce: POST /local/gate -> PENDING (returns challenge_nonce) -> GET /local/pending shows action (with challenge_nonce) -> POST /local/decide(allow, operator-signed-over-choice+oid+pending_oid+challenge_nonce, enrolled OID) -> decision=allow, action_released=true, signed governed-action.allowed receipt retrievable. FAILING-BEFORE: no /local/* router existed; all requests returned 404. PASSING-AFTER: full flow completes, receipt is signed (has 'signature' and 'attestation' fields), body.decision='allow', body.status='ok'.",
+      "signed_payload_shape": "canonicalize({ choice, operator_oid, pending_oid, challenge_nonce })",
+      "observables": [
+        "POST /local/gate -> 201, { pending_oid: string, status: 'pending', challenge_nonce: string (64 hex) }",
+        "GET /local/pending -> 200, { pending: [{ pending_oid, action_kind, challenge_nonce, ... }], count: 1 }",
+        "POST /local/decide(allow, signed, enrolled, challenge_nonce) -> 200, { decision: 'allow', action_released: true, receipt_oid: string }",
+        "pending store is empty after decide (action removed, nonce consumed)",
+        "GET /local/receipts -> 200, receipts list includes the allowed receipt",
+        "GET /local/receipts/:oid -> 200, receipt.body.decision='allow', receipt.body.status='ok'",
+        "receipt has 'signature' field (v1 inline sign)",
+        "receipt has 'attestation' object (v2 DSSE sign)"
+      ]
+    },
+    {
+      "name": "local-happy-deny",
+      "tag": "LOCAL-INGEST-DENY",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (11 assertions, updated for enrolled+nonce flow)",
+      "expected": "PASS",
+      "description": "Happy-deny flow with enrolled operator and challenge nonce. The action is NOT released (action_released=false is load-bearing). Signed payload includes challenge_nonce. Deny receipt has body.decision='deny', body.status='denied', both v1 and v2 signatures present.",
+      "signed_payload_shape": "canonicalize({ choice, operator_oid, pending_oid, challenge_nonce })",
+      "observables": [
+        "POST /local/decide(deny, signed, enrolled, challenge_nonce) -> 200, { decision: 'deny', action_released: false, receipt_oid: string }",
+        "GET /local/receipts/:oid -> 200, receipt.body.decision='deny', receipt.body.status='denied'",
+        "receipt has 'signature' and 'attestation'",
+        "pending store empty after deny"
+      ]
+    },
+    {
+      "name": "local-security-loopback-only",
+      "tag": "LOCAL-INGEST-SECURITY-LOOPBACK",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (3 assertions). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "PASS",
+      "description": "Loopback-only enforcement. A request whose req.socket.remoteAddress is NOT a loopback address is rejected 403 BEFORE any route handler runs. The guard reads req.socket.remoteAddress (the actual TCP peer), not any header (X-Forwarded-For is not trusted). NOTE: transport hardening fix #2 (Host header + custom header + bind-127.0.0.1) is the NEXT slice (mechanical, no new contract per ADR_015 Section 5).",
+      "panel_note": "PARTIAL-pending-Security+Adversary-panel: this test simulates off-host via socket override in the same process. The panel will review whether any path exists to reach /local/* from off-host in the production deployment.",
+      "observables": [
+        "non-loopback GET /local/health -> 403, { error: 'forbidden' }",
+        "non-loopback POST /local/gate -> 403",
+        "loopback requests are NOT rejected"
+      ]
+    },
+    {
+      "name": "local-security-unauthenticated-decide",
+      "tag": "LOCAL-INGEST-SECURITY-AUTH",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (4 assertions). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "PASS",
+      "description": "Unauthenticated or malformed /local/decide -> rejected (400). Missing operator_oid, missing operator_signature, or invalid choice are all rejected before the enrollment check runs. The pending action remains in the store after all rejected requests (no side-effect on malformed input).",
+      "observables": [
+        "POST /local/decide missing operator_oid -> 400",
+        "POST /local/decide missing operator_signature -> 400",
+        "POST /local/decide choice='maybe' -> 400",
+        "pending store unchanged after all three rejections"
+      ]
+    },
+    {
+      "name": "local-security-wrong-key-decide",
+      "tag": "LOCAL-INGEST-SECURITY-WRONG-KEY",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (5 assertions). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "PASS",
+      "description": "Wrong-key /local/decide paths -> rejected. (a) Correct operator_oid + wrong pubkey: OID-binding check fails (sha256(wrong_pubkey) != operator_oid) -> 400 oid_binding_mismatch BEFORE membership or signature. (b) Correct OID + correct pubkey + wrong signature bytes: signature verify fails -> 403 signature_invalid. The pending action remains in the store after both rejections.",
+      "observables": [
+        "POST /local/decide(correct oid, wrong pubkey, any challenge_nonce) -> 400, type='oid_binding_mismatch'",
+        "POST /local/decide(correct oid+pubkey, wrong sig, valid nonce) -> 403, type='signature_invalid'",
+        "pending store unchanged after both rejections"
+      ]
+    },
+    {
+      "name": "local-security-deny-on-timeout",
+      "tag": "LOCAL-INGEST-SECURITY-TIMEOUT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (9 assertions). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "PASS",
+      "description": "Deny-on-timeout (fail-closed). An action not decided within PENDING_TIMEOUT_MS is auto-denied by sweepExpiredPending(). A signed governed-action.denied receipt is emitted. After the sweep: (a) pending store is empty, (b) the timeout receipt has status='denied' and detail contains 'timeout', (c) a subsequent /local/decide attempt returns 404 (action gone and nonce consumed/absent).",
+      "observables": [
+        "sweep finds expired action, removes from pending store",
+        "a signed denied receipt is emitted with body.detail containing 'timeout'",
+        "timeout receipt has 'signature' (v1) and 'attestation' (v2)",
+        "POST /local/decide on the timed-out pending_oid -> 404 not_found"
+      ]
+    },
+    {
+      "name": "local-no-regression-consult-gate",
+      "tag": "LOCAL-INGEST-NO-REGRESSION",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (4 assertions)",
+      "expected": "PASS",
+      "description": "No-regression check: the /internal/gate/consult endpoint (consult-gate-router.ts) continues to work correctly after the /local/* router is added to the same Express app.",
+      "observables": [
+        "POST /internal/gate/consult -> 200",
+        "response has decision_oid (string)",
+        "response has attestation (object)",
+        "content_core.schema_version == 'gate-decision/1'"
+      ]
+    },
+    {
+      "name": "oa_attack_a",
+      "tag": "LOCAL-INGEST-OA-ATTACK-A",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (3 assertions). This is the CRITICAL repro vector.",
+      "expected": "REJECT",
+      "description": "CRITICAL ADR_015 Attack A repro: unenrolled attacker mints a fresh keypair, sets operator_oid=sha256(attacker_pub) (passes OID-binding self-consistency), signs the canonical payload (passes signature check), and POSTs /local/decide. FAILING-BEFORE (pre-ADR_015 Fix #1): the system returned 200 allow, action_released=true (the bypass). PASSING-AFTER: the enrolled-membership check (step 2 of assertEnrolledOperator) rejects with 403 operator_not_enrolled or 409 not_enrolled BEFORE any signature matters. The pending action remains unchanged.",
+      "failing_before": "200 allow, action_released=true (self-asserted OID bypasses auth)",
+      "observables": [
+        "POST /local/decide with self-asserted unenrolled keypair -> 403 or 409 (NOT 200)",
+        "response type is 'not_enrolled' or 'operator_not_enrolled'",
+        "pending action is still in the store after the rejection"
+      ]
+    },
+    {
+      "name": "oa_grant_attack_a",
+      "tag": "LOCAL-INGEST-OA-GRANT-ATTACK-A",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions). CRITICAL repro for the SHIPPED grant path.",
+      "expected": "REJECT",
+      "description": "CRITICAL ADR_015 Attack A on the SHIPPED engine.ts grant path (POST /v1/agp/grants/:oid/update): attacker self-asserts operator_oid + matching key + valid signature, calls updateGrantPredicate. FAILING-BEFORE: grant was updated (the SHIPPED-path bypass). PASSING-AFTER: assertEnrolledOperator called before verifyOperatorSignature; throws InvalidOperatorSignatureError wrapping enrollment error. Grant NOT updated.",
+      "failing_before": "grant updated successfully with self-asserted unenrolled keypair",
+      "observables": [
+        "updateGrantPredicate() throws InvalidOperatorSignatureError",
+        "error message contains enrollment-related text (not_enrolled / enrollment_missing)"
+      ]
+    },
+    {
+      "name": "oa_not_enrolled",
+      "tag": "LOCAL-INGEST-OA-NOT-ENROLLED",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions)",
+      "expected": "REJECT",
+      "description": "Non-enrolled operator: (a) no enrollment record at all -> 409 not_enrolled (fail-closed: no record = no operator); (b) enrollment record exists for a DIFFERENT operator OID -> 403 operator_not_enrolled. Pending action unchanged in both cases.",
+      "observables": [
+        "no record -> 409",
+        "different OID enrolled -> 403"
+      ]
+    },
+    {
+      "name": "oa_replay",
+      "tag": "LOCAL-INGEST-OA-REPLAY",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (3 assertions)",
+      "expected": "REJECT-ON-SECOND-USE",
+      "description": "Replay protection (Attack B): enrolled operator's valid decide replayed a second time. First decide: 200 allow, action_released=true, pending consumed. Second decide with the SAME body (same pending_oid, same challenge_nonce, same signature): 404 not_found (action gone; nonce was single-use and is consumed with the action). No double-release.",
+      "observables": [
+        "first decide -> 200, action_released=true",
+        "second decide (same body) -> 404 not_found (action consumed)",
+        "no double-release"
+      ]
+    },
+    {
+      "name": "oa_nonce_wrong",
+      "tag": "LOCAL-INGEST-OA-NONCE-WRONG",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions)",
+      "expected": "REJECT",
+      "description": "Wrong challenge_nonce: enrolled operator provides a nonce that does not match the server-issued one for this pending_oid. Even if OID-binding, enrollment, and signature all pass, the freshness check (step 4) rejects. -> 409 stale_or_replayed. Action unchanged.",
+      "observables": [
+        "wrong nonce -> 409, type='stale_or_replayed'",
+        "action still in pending store"
+      ]
+    },
+    {
+      "name": "oa_nonce_missing",
+      "tag": "LOCAL-INGEST-OA-NONCE-MISSING",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (1 assertion)",
+      "expected": "REJECT",
+      "description": "Missing challenge_nonce field in /local/decide body -> 400 invalid_request (well-formedness check, step 0, before enrollment check).",
+      "observables": [
+        "POST /local/decide without challenge_nonce -> 400"
+      ]
+    },
+    {
+      "name": "oa_binding_still",
+      "tag": "LOCAL-INGEST-OA-BINDING",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions)",
+      "expected": "REJECT",
+      "description": "OID-binding still enforced even with enrollment wired: enrolled operator_oid but a DIFFERENT operator_pubkey (so sha256(pubkey) != operator_oid). -> 400 oid_binding_mismatch at step 1, before membership check. Action unchanged.",
+      "observables": [
+        "wrong pubkey for enrolled OID -> 400, type='oid_binding_mismatch'"
+      ]
+    },
+    {
+      "name": "oa_sig_still",
+      "tag": "LOCAL-INGEST-OA-SIG",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions)",
+      "expected": "REJECT",
+      "description": "Signature still required even with enrollment: enrolled, correctly-bound OID/key, valid nonce, but garbage signature bytes -> 403 signature_invalid at step 3. Action unchanged.",
+      "observables": [
+        "bad sig, enrolled OID, valid nonce -> 403, type='signature_invalid'"
+      ]
+    },
+    {
+      "name": "oa_happy",
+      "tag": "LOCAL-INGEST-OA-HAPPY",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (9 assertions). Positive control.",
+      "expected": "PASS",
+      "description": "Positive control: the enrolled operator with correctly-bound key, valid signature over canonicalize({choice, operator_oid, pending_oid, challenge_nonce}), and fresh server-issued nonce -> 200 allow, action_released=true, signed receipt. Proves the chain is not vacuously rejecting everything.",
+      "observables": [
+        "challenge_nonce is in gate response (string, non-empty)",
+        "enrolled op, valid sig, fresh nonce -> 200, decision='allow', action_released=true",
+        "receipt_oid present and retrievable",
+        "receipt body decision='allow', status='ok'",
+        "receipt has 'signature' field"
+      ]
+    },
+    {
+      "name": "oa_enroll_missing",
+      "tag": "LOCAL-INGEST-OA-ENROLL-MISSING",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions)",
+      "expected": "REJECT",
+      "description": "Enrollment record missing at decide time (cleared between gate and decide): any decide attempt -> 409 not_enrolled. Fail-closed: no enrollment record = no operator can decide. Action still pending. Per ADR_015 Section 2.4 case (i).",
+      "observables": [
+        "cleared enrollment -> 409 not_enrolled",
+        "action still in pending store (unchanged)"
+      ]
+    },
+    {
+      "name": "oa_enroll_corrupt",
+      "tag": "LOCAL-INGEST-OA-ENROLL-CORRUPT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions)",
+      "expected": "REJECT",
+      "description": "Enrollment record with corrupted attestation (flipped base64 byte in DSSE signature): DSSE seal verify fails, record is discarded, decide -> 409 not_enrolled + enrollment-corrupt logged. Fail-closed: corrupted record never authorizes anyone. Action still pending. Per ADR_015 Section 2.4 case (ii).",
+      "observables": [
+        "corrupt attestation -> 409",
+        "action still in pending store"
+      ]
+    },
+
+    {
+      "name": "fix2_host_header_rejection",
+      "tag": "LOCAL-INGEST-FIX2-HOST-HEADER",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (7 assertions, test/local-ingest-security-2-3-4.test.ts). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "REJECT",
+      "description": "DNS-rebinding defense layer 1 (ADR_015 fix #2). Any /local/* request whose Host header is not 127.0.0.1[:PORT] or localhost[:PORT] is rejected 403 before any route handler runs. In a DNS-rebinding attack the browser sends the attacker-controlled domain as the Host header; this rejects it. The guard runs after the socket-address check (loopback) and before the custom-header check. FAILING-BEFORE: all Hosts were accepted (only socket address was checked). PASSING-AFTER: evil Host -> 403 forbidden.",
+      "panel_note": "The full gateway listener binds 0.0.0.0 (needed for health-check traffic on non-loopback interfaces in production). Rather than breaking non-/local routes by rebinding the entire server, the /local surface is protected by all three layers: socket address + Host header + custom header. The panel decides whether a split-listener is also warranted; surfaced in the router header comment.",
+      "observables": [
+        "GET /local/health with Host: evil.example.com -> 403, error='forbidden'",
+        "POST /local/gate with Host: attacker.internal -> 403",
+        "GET /local/health with Host: 127.0.0.1:PORT -> 200 (passes)",
+        "GET /local/health with Host: localhost -> 200 (passes)"
+      ]
+    },
+
+    {
+      "name": "fix2_custom_header_rejection",
+      "tag": "LOCAL-INGEST-FIX2-CUSTOM-HEADER",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (6 assertions, test/local-ingest-security-2-3-4.test.ts). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "REJECT",
+      "description": "CSRF defense layer 2 (ADR_015 fix #2). Every /local/* request must include X-SynOI-Local: 1. Browsers cannot set arbitrary custom headers on cross-origin no-cors requests, so this defeats CSRF without a per-request token. The guard runs after the socket-address and Host-header checks. Missing or wrong-value header -> 403. The local dashboard always sets X-SynOI-Local: 1. FAILING-BEFORE: all requests were accepted without a custom header. PASSING-AFTER: missing/wrong custom header -> 403 forbidden.",
+      "observables": [
+        "GET /local/health without X-SynOI-Local -> 403, error='forbidden'",
+        "POST /local/gate with X-SynOI-Local: true (wrong value) -> 403",
+        "GET /local/health with X-SynOI-Local: 1 -> 200 (passes)",
+        "evil Host + valid X-SynOI-Local -> still 403 at host guard (layers are independent)"
+      ]
+    },
+
+    {
+      "name": "fix3_bundle_grant_check",
+      "tag": "LOCAL-INGEST-FIX3-BUNDLE-GRANT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (9 assertions, test/local-ingest-security-2-3-4.test.ts). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "REJECT-on-unknown-or-revoked",
+      "description": "Bundle_OID grant check at /local/gate (ADR_015 fix #3, Axis-3 subset). Before creating a pending action, bundle_oid is validated against agp_grants: (a) unknown bundle_oid (not in grants table) -> 403 bundle_unknown; (b) revoked grant -> 403 bundle_revoked; (c) active non-expired grant -> 201 accepted. In test mode (SYNOI_ALLOW_EPHEMERAL_KEYS=true) the sentinel 'capbundle/1' bypasses the check for test-harness compatibility; all other bundle_oids go through the real check. FAILING-BEFORE: any bundle_oid string was accepted at /local/gate with no grants-table lookup. PASSING-AFTER: unknown/revoked bundles rejected 403. NOTE: Axis 3 full entitlement (policy evaluation, action-kind matching, quota) stays PARTIAL; this fix closes the specific 'no-grant-check-at-gate' gap only.",
+      "axis3_note": "PARTIAL. This check closes the no-grant-at-gate gap (bundle existence + revocation). Full Axis 3 entitlement (capability scopes, principal-to-grant binding, quota enforcement) is a later slice.",
+      "observables": [
+        "POST /local/gate with unknown bundle_oid -> 403, type='bundle_unknown'",
+        "POST /local/gate with revoked bundle_oid -> 403, type='bundle_revoked'",
+        "pending store unchanged after both rejections",
+        "POST /local/gate with active grant bundle_oid -> 201, status='pending'"
+      ]
+    },
+
+    {
+      "name": "fix4_pending_store_cap",
+      "tag": "LOCAL-INGEST-FIX4-PENDING-CAP",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (3 assertions, test/local-ingest-security-2-3-4.test.ts). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "429-at-cap",
+      "description": "Pending-store cap (ADR_015 fix #4). MAX_PENDING_ACTIONS=100 is enforced at /local/gate. When the store is at capacity, further gate calls return 429 pending_cap_exceeded. This bounds memory and prevents a flood from inflating the pending store indefinitely. FAILING-BEFORE: pending store was an unbounded Map; a flood of /local/gate calls would grow it without limit. PASSING-AFTER: store never exceeds MAX_PENDING_ACTIONS; the 429 is returned at the cap.",
+      "constants": {
+        "MAX_PENDING_ACTIONS": 100
+      },
+      "observables": [
+        "flood /local/gate past MAX_PENDING_ACTIONS -> 429, type='pending_cap_exceeded'",
+        "pending store size stays <= MAX_PENDING_ACTIONS at all times"
+      ]
+    },
+
+    {
+      "name": "fix4_rate_limit",
+      "tag": "LOCAL-INGEST-FIX4-RATE-LIMIT",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed GREEN 2026-06-22 (2 assertions, test/local-ingest-security-2-3-4.test.ts). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "429-after-GATE_RATE_MAX_CALLS",
+      "description": "Rate-limit window at /local/gate (ADR_015 fix #4). A global token-bucket (GATE_RATE_MAX_CALLS=50 calls per GATE_RATE_WINDOW_MS=10000ms) applies to all loopback callers. Exceeding the window rate returns 429 rate_limited. All callers are loopback in v1 so a single global bucket is sufficient. A per-principal bucket is deferred. FAILING-BEFORE: no rate limit; a tight flood loop could submit arbitrary call volume. PASSING-AFTER: 429 rate_limited after GATE_RATE_MAX_CALLS calls in the window.",
+      "constants": {
+        "GATE_RATE_MAX_CALLS": 50,
+        "GATE_RATE_WINDOW_MS": 10000
+      },
+      "observables": [
+        "more than GATE_RATE_MAX_CALLS calls in GATE_RATE_WINDOW_MS -> 429, type='rate_limited'",
+        "at least some calls succeed before the rate limit fires"
+      ]
+    },
+
+    {
+      "name": "fix4_sweep_batching",
+      "tag": "LOCAL-INGEST-FIX4-SWEEP-BATCH",
+      "status": "PARTIAL-AGAINST-TEST-KEYS",
+      "status_runner": "tsx-backed (covered via existing SECURITY-4 timeout test which still passes; batching logic is unit-verified by the synchronous return of the first batch). PARTIAL-pending-Security+Adversary-panel re-panel.",
+      "expected": "PASS",
+      "description": "Sweep batching (ADR_015 fix #4). sweepExpiredPending() now processes at most SWEEP_BATCH_SIZE=20 expired entries per synchronous tick, yielding with setImmediate between batches. This prevents an O(N) blocking pass in one event-loop turn when the store is large. The first batch is processed synchronously (so test callers still get the result immediately). Subsequent batches are deferred via setImmediate. The existing SECURITY-4 timeout test passes unmodified (small store, first batch). Memory is bounded by the pending-store cap.",
+      "observables": [
+        "sweepExpiredPending() returns synchronously with the first batch of expired OIDs",
+        "the pending store shrinks correctly for the synchronous batch (SECURITY-4 still passes)"
+      ]
+    }
+  ],
+
+  "security_controls_summary": {
+    "loopback_enforcement": "BUILT-AND-TESTED. Reads req.socket.remoteAddress (not any header). Non-loopback -> 403 before any route. PARTIAL-pending-Security+Adversary-panel re-panel.",
+    "host_header_dns_rebinding": "BUILT-AND-TESTED (Fix #2). Host header validated after socket check. Only 127.0.0.1[:PORT] and localhost[:PORT] accepted. DNS-rebinding attack sends attacker domain as Host -> rejected 403. PARTIAL-against-test-keys; pending-panel NOT self-cleared.",
+    "custom_header_csrf": "BUILT-AND-TESTED (Fix #2). X-SynOI-Local: 1 required on every /local/* request. Browsers cannot set arbitrary custom headers on cross-origin no-cors requests, defeating CSRF without a per-request token. PARTIAL-against-test-keys; pending-panel NOT self-cleared.",
+    "bind_note": "SURFACED (Fix #2). The full gateway listener binds 0.0.0.0 for production infra needs. /local/* is defended by all three layers (socket + Host + custom header) instead of a split-listener. Panel decides whether a split-listener is also needed. Not breaking non-/local routes.",
+    "operator_enrollment_adr015": "BUILT-AND-TESTED (ADR_015 Fix #1). OperatorEnrollmentRecord sealed with gateway DSSE hybrid signer at SYNOI_DATA_DIR/operator-enrollment.json. 4-step assertEnrolledOperator chain: OID-binding -> enrolled-membership -> Ed25519 signature -> challenge-nonce freshness. Missing/corrupt record -> fail-closed (409 not_enrolled, never fail-open). Applied to BOTH /local/decide AND engine.ts updateGrantPredicate. PARTIAL-against-test-keys; production keys PAPER + ceremony-gated.",
+    "challenge_nonce_anti_replay": "BUILT-AND-TESTED (ADR_015 Fix #1). 32-byte CSPRNG nonce server-issued at /local/gate, bound into the signed payload, consumed atomically with the decision. Single-use: replay -> 404 not_found. PARTIAL-against-test-keys.",
+    "bundle_grant_check": "BUILT-AND-TESTED (Fix #3, Axis-3 subset). bundle_oid validated against agp_grants at /local/gate: unknown -> 403 bundle_unknown; revoked -> 403 bundle_revoked; active -> proceed. Axis 3 full entitlement (capability scopes, quota, principal binding) stays PARTIAL. PARTIAL-against-test-keys; pending-panel NOT self-cleared.",
+    "rate_limit_and_pending_cap": "BUILT-AND-TESTED (Fix #4). MAX_PENDING_ACTIONS=100 caps the pending store; 429 pending_cap_exceeded at cap. GATE_RATE_MAX_CALLS=50 per GATE_RATE_WINDOW_MS=10000ms; 429 rate_limited when exceeded. sweepExpiredPending() batches SWEEP_BATCH_SIZE=20 per tick with setImmediate yield. PARTIAL-against-test-keys; pending-panel NOT self-cleared.",
+    "deny_on_timeout": "BUILT-AND-TESTED. sweepExpiredPending() auto-denies past PENDING_TIMEOUT_MS. Emits signed governed-action.denied receipt. PARTIAL-pending-panel re-panel.",
+    "fail_closed": "BUILT. Malformed body -> 400/reject. Unknown/missing enrollment -> 409. No code path that auto-allows. PARTIAL-pending-panel re-panel.",
+    "host_root_residual": "PAPER. A host-root attacker who can read the OS-keystore salt can re-derive the gateway signing key and re-seal a fraudulent enrollment record. This is the named ADR_015 Section 2.3 residual, inherited from ADR_011 Section 3.2.3.1. Closed only by hardware monotonic counter or witnessed log (later-phase). The v1 fix closes Attack A for ALL unprivileged local processes; it does not claim to defeat host-root.",
+    "axis3_status": "PARTIAL. Fix #3 closes the no-grant-at-gate gap. Full Axis 3 entitlement (capability scopes, principal-to-grant binding, quota) is a later slice.",
+    "panel_clearance": "NOT SELF-CLEARED. #1/#2/#3/#4 controls are all built and pass reproduce-first test vectors. The auth/exposure surface is PARTIAL-pending-Security+Adversary-panel re-panel. The re-panel decides clearance. Do NOT declare any control panel-cleared until the re-panel runs."
+  }
+}

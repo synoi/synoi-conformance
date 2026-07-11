@@ -1,0 +1,96 @@
+[
+  {
+    "__comment": [
+      "TST.2 / ARCH.1 Resolution 3 -- SMS HITL onInboundReceived injection contract.",
+      "",
+      "Test seam: SmsHitlAdapterOptions.onInboundReceived is the sole injection point.",
+      "When supplied, the adapter MUST call it instead of opening the real /twilio/inbound",
+      "webhook window. The function receives the outbound SID and returns a mock inbound",
+      "payload synchronously or as a Promise.",
+      "",
+      "Falsifiability: remove the opts.onInboundReceived branch in the adapter (fall through",
+      "to the real webhook path). The test will fail because pipWrapperFetch never resolves",
+      "(no real Twilio network) and will time out or return source_unavailable.",
+      "",
+      "This vector asserts three things:",
+      "  (a) The adapter is constructed with a mock onInboundReceived function.",
+      "  (b) Fetch resolves successfully using the mock return value (not the webhook path).",
+      "  (c) The returned FeedResult matches the mock payload: body, direction, SID, to.",
+      "",
+      "The runner wires mock_twilio_outbound_sid as the SID passed to onInboundReceived.",
+      "The mock_twilio_inbound_body + mock_twilio_inbound_sid together form the synthetic",
+      "inbound payload that onInboundReceived returns, bypassing all real network I/O.",
+      "",
+      "Builder reference: synoi-gateway/src/agp/pip/sms-hitl/adapter.ts",
+      "  SmsHitlAdapterOptions.onInboundReceived per CLARIFICATIONS.md item 3.",
+      "Spec reference: DEMO_PREWORK_SCHEMAS_2026-06-17.md Section 2.4."
+    ],
+    "name": "pip_wrapper: sms_hitl onInboundReceived injection bypasses real webhook path",
+    "kind": "pip_wrapper_fetch",
+    "subject_type": "sms_hitl",
+    "subject_value": "+18015550100",
+    "mock_twilio_outbound_sid": "SM01test0injection000000000000001",
+    "mock_twilio_inbound_body": "YES",
+    "mock_twilio_inbound_sid": "SM01test0injection000000000000001",
+    "mock_twilio_inbound_received_at": "2026-06-17T19:36:42.118Z",
+    "injection_mode": "onInboundReceived",
+    "expected_result_ok": true,
+    "expected_feed_result_shape": {
+      "raw_value_keys_present": ["body", "direction", "provider_message_sid", "to"],
+      "raw_value_direction": "in",
+      "raw_value_to": "+18015550100",
+      "value_hash_prefix": "sha256:",
+      "source_url_contains": "twilio.com"
+    },
+    "notes": [
+      "injection_mode=onInboundReceived signals: construct SmsHitlAdapter with",
+      "  onInboundReceived: async (sid) => ({",
+      "    body: mock_twilio_inbound_body,",
+      "    provider_message_sid: sid,",
+      "    received_at: mock_twilio_inbound_received_at",
+      "  })",
+      "The adapter MUST NOT open any real HTTP connection in this mode.",
+      "FeedResult.raw_value must reflect the inbound reply (direction: in), not the outbound.",
+      "value_hash = sha256(JCS(JSON.parse(FeedResult.raw_value))) -- gate self-checks this.",
+      "For the canonical mock payload the expected hash is:",
+      "  sha256:99849a9f0dabd03097b707eb30d65de0b5486903a6f499c93aeb6e2e19b896e7",
+      "Deviation from this hash means the adapter changed the payload before hashing."
+    ]
+  },
+  {
+    "name": "pip_wrapper: sms_hitl injection returns deterministic value_hash for known payload",
+    "kind": "pip_wrapper_gate_boundary",
+    "description": "Gate self-check on the FeedResult produced by the onInboundReceived injection path. Verifies value_hash integrity is maintained end-to-end when no real network is involved.",
+    "adapter_returns": {
+      "raw_value": "{\"body\":\"YES\",\"direction\":\"in\",\"provider_message_sid\":\"SM01test0injection000000000000001\",\"to\":\"+18015550100\"}",
+      "value_hash": "sha256:99849a9f0dabd03097b707eb30d65de0b5486903a6f499c93aeb6e2e19b896e7",
+      "fetched_at": "2026-06-17T19:36:42.118Z",
+      "source_url": "https://api.twilio.com/2010-04-01/Messages/SM01test0injection000000000000001"
+    },
+    "expected_gate_action": "proceed",
+    "notes": [
+      "value_hash matches sha256(JCS(JSON.parse(raw_value))) for this payload.",
+      "Gate action is proceed (inbound body is 'YES'; HITL approved).",
+      "The gate boundary check is independent of injection vs real path: it only sees FeedResult."
+    ]
+  },
+  {
+    "name": "pip_wrapper: sms_hitl injection with tampered value_hash is caught at gate boundary",
+    "kind": "pip_wrapper_gate_boundary",
+    "description": "If the adapter corrupts or forges the value_hash on the injection path, the gate self-check must catch it and emit a denial receipt.",
+    "adapter_returns": {
+      "raw_value": "{\"body\":\"YES\",\"direction\":\"in\",\"provider_message_sid\":\"SM01test0injection000000000000001\",\"to\":\"+18015550100\"}",
+      "value_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "fetched_at": "2026-06-17T19:36:42.118Z",
+      "source_url": "https://api.twilio.com/2010-04-01/Messages/SM01test0injection000000000000001"
+    },
+    "expected_gate_action": "emit_denial_receipt",
+    "expected_cited_reason": "adapter_value_hash_mismatch",
+    "notes": [
+      "Forged hash must be caught regardless of adapter construction path.",
+      "This vector is identical in structure to the weather gate boundary tamper test.",
+      "Falsifiability: skip the hash self-check in pipWrapperGateBoundaryCheck.",
+      "  The gate would then return proceed for a forged receipt -- the test fails."
+    ]
+  }
+]
