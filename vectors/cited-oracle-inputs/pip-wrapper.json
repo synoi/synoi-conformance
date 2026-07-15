@@ -266,22 +266,28 @@
     ]
   },
   {
-    "name": "pip_wrapper: webhook adapter returns feed_timeout on 10-second HTTP timeout",
+    "name": "pip_wrapper: webhook adapter returns source_unavailable on 10-second HTTP timeout",
     "kind": "pip_wrapper_fetch",
     "subject_type": "webhook",
     "subject_value": "https://example.com/synoi-check",
     "mock_upstream_timeout": true,
     "mock_timeout_after_ms": 10000,
     "expected_result_ok": false,
-    "expected_error_kind": "feed_timeout",
+    "expected_error_kind": "source_unavailable",
     "notes": [
       "C7 / S2.9.",
       "The webhook adapter has a 10-second timeout per spec Section 2.6.",
+      "DEMO_PREWORK_SCHEMAS_2026-06-17.md Section 2 feed-error variant table is explicit:",
+      "  source-unavailable(string) covers 'upstream 5xx, DNS, timeout'. There is no",
+      "  separate feed_timeout variant anywhere in the WIT feed-error union or the",
+      "  gateway's FeedError type (gap/pip/types.ts) -- this vector previously named a",
+      "  kind that was never part of the spec or the shipped type.",
       "When the upstream does not respond within 10 seconds the adapter must return",
-      "  { ok: false, error_kind: 'feed_timeout' }.",
-      "The gate fails closed on feed_timeout: a denial receipt is emitted.",
+      "  { ok: false, error_kind: 'source_unavailable' }.",
+      "The gate fails closed on source_unavailable for the webhook subject_type: a",
+      "  denial receipt is emitted.",
       "Falsifiability: remove the timeout or extend it indefinitely. The mock upstream",
-      "  never responds; the adapter hangs and never returns feed_timeout.",
+      "  never responds; the adapter hangs and never returns an error.",
       "  The vector will time out in the runner and fail with a different error."
     ]
   },
