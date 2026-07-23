@@ -292,53 +292,36 @@
     ]
   },
   {
-    "name": "pip_wrapper: webhook in-browser eval path: snippet_hash binding is end-to-end verified",
+    "name": "pip_wrapper: webhook adapter fail-closes a wss:// subject_value (in-browser eval moved to EvalBridgeAdapter)",
     "kind": "pip_wrapper_fetch",
     "subject_type": "webhook",
     "subject_value": "wss://demo.synoi.systems/eval/sess-7f3a",
-    "mock_eval_snippet": "return context.amount < 1000",
-    "mock_eval_snippet_hash": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-    "mock_eval_result": { "allow": true },
-    "injection_mode": "in_browser_eval",
-    "expected_result_ok": true,
-    "expected_feed_result_shape": {
-      "raw_value_keys_present": [
-        "endpoint_kind",
-        "response_body_hash",
-        "status_code_or_eval_result"
-      ],
-      "raw_value_endpoint_kind": "in_browser_eval",
-      "snippet_hash_bound_in_raw_value": true
-    },
-    "notes": [
-      "C7 / S2.9.",
-      "For in-browser eval, the adapter must bind the snippet_hash into raw_value so",
-      "  the signed receipt proves which code ran in the browser.",
-      "raw_value.response_body_hash = sha256(JCS(eval_result)).",
-      "raw_value must carry the snippet_hash field so verifiers can confirm the script.",
-      "Falsifiability: omit snippet_hash from raw_value. The shape assertion",
-      "  snippet_hash_bound_in_raw_value fails because raw_value has no snippet_hash key.",
-      "Spec reference: S2.2 webhook adapter in-browser eval; snippet_hash binding contract."
-    ]
-  },
-  {
-    "name": "pip_wrapper: webhook in-browser eval response shape validation rejects non-boolean allow",
-    "kind": "pip_wrapper_fetch",
-    "subject_type": "webhook",
-    "subject_value": "wss://demo.synoi.systems/eval/sess-7f3a",
-    "mock_eval_snippet": "return 'yes'",
-    "mock_eval_snippet_hash": "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-    "mock_eval_result": { "allow": "yes" },
-    "injection_mode": "in_browser_eval",
     "expected_result_ok": false,
-    "expected_error_kind": "source_format_drift",
+    "expected_error_kind": "policy_fail_closed",
     "notes": [
-      "C7 / S2.9.",
-      "In-browser eval result must be { allow: boolean }. A string 'yes' is not a boolean.",
-      "The adapter must validate the response shape and return source_format_drift on mismatch.",
-      "Falsifiability: coerce any truthy value to true. The gate accepts 'yes' as allow=true",
-      "  and emits an allow receipt. The expected_result_ok=false assertion fails.",
-      "Spec reference: S2.2 webhook adapter response shape contract."
+      "C7 / S2.9. SUPERSEDES the two prior vectors of this name",
+      "  ('snippet_hash binding is end-to-end verified' and 'response shape",
+      "  validation rejects non-boolean allow'), which asserted WebhookAdapter",
+      "  itself performed in-browser eval over a wss:// subject_value.",
+      "That in-browser eval responsibility now lives ENTIRELY in a separate",
+      "  adapter, EvalBridgeAdapter (gap/pip/eval-bridge-router.ts), reached via",
+      "  the eval-bridge session API (POST /v1/gap/eval-bridge/start + the WS",
+      "  upgrade), never via WebhookAdapter.fetch(). WebhookAdapter receiving a",
+      "  wss:// subject_value now means the caller routed an in-browser-eval",
+      "  request through the wrong adapter, and it correctly fails closed",
+      "  (policy_fail_closed) rather than attempting to eval anything -- a",
+      "  security fix (a webhook-shaped adapter should never execute",
+      "  browser-supplied logic) that outran these two vectors.",
+      "The snippet_hash-binding and response-shape-validation guarantees these",
+      "  vectors used to pin are NOT lost: they are covered directly against",
+      "  EvalBridgeAdapter by test/s2-eval-bridge.test.ts (raw_value.snippet_hash,",
+      "  raw_value.response_value boolean, value_hash self-consistency, PII",
+      "  boundary -- snippet text never crosses to the gateway).",
+      "Falsifiability: make WebhookAdapter accept a wss:// subject_value again",
+      "  (e.g. by evaluating mock_eval_result inline instead of fail-closing).",
+      "  expected_result_ok=false / expected_error_kind=policy_fail_closed then",
+      "  fails because the adapter returns ok=true instead.",
+      "Spec reference: S2.2 webhook adapter / EvalBridgeAdapter split; S1.8 fail-closed policy."
     ]
   }
 ]
