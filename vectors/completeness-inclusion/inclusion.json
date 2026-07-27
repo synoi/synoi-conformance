@@ -1,0 +1,218 @@
+{
+  "kind": "completeness_inclusion_v1",
+  "description": "Receipt-to-public-log inclusion composer (build1-completeness-witnessing, INC1). One synoi.inclusion.v1 bundle per receipt stitches LEG 1 (local RFC 6962 audit path over receipt OIDs, folding to completeness root R) to LEG 2 (a Rekor inclusion proof over R). This vector freezes the surface INC1 OWNS and that any reimplementation must reproduce: (a) the leaf preimage is leafHash(utf8(oid_hex_64)), ADR_023 D1 FORK-B, identical to the completeness-spine vector; (b) the local audit path folds to R via RFC 6962; (c) the load-bearing JOIN local.root_sha256 === witness.root_sha256_hex, so a valid external proof for a DIFFERENT root can NEVER certify a receipt in R (the false-AUTHORIZE trap); (d) when the window root is not yet witnessed the composer yields a typed not-yet-witnessed state, never a false verified. LEG 2's RFC 6962 inclusion + C2SP checkpoint signature verification is frozen separately by vectors/witness (rekor-verify); this vector deliberately does not re-embed a p256 checkpoint. All hashes are bare lowercase hex, no sha256: prefix.",
+  "constants": {
+    "schema": "synoi.inclusion.v1",
+    "algorithm": "RFC6962-SHA256",
+    "leaf_preimage": "leafHash(oid_hex) = SHA-256(0x00 || utf8(oid_hex_64)); hashes the hex STRING, NOT the raw 32 digest bytes (ADR_023 D1 / FORK-B)",
+    "internal_node": "internalHash(l,r) = SHA-256(0x01 || l || r)",
+    "fold_rule": "current = leaf; for step in audit_path (bottom-up): current = position=='L' ? internalHash(step.sibling, current) : internalHash(current, step.sibling). Bundle is local-valid iff current == root_sha256.",
+    "join_rule": "local.root_sha256 (lowercased) MUST equal witness_root (lowercased). A mismatch is status 'root-mismatch' and verified:false, never 'verified'.",
+    "empty_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "cases": [
+    {
+      "name": "good_composed_index1",
+      "note": "A well-formed bundle for the middle receipt of a 3-leaf population in Journal order. The local audit path folds to R and witness_root === R. LEG 1 and the JOIN both pass; LEG 2 (the Rekor proof over R) is proven by the rekor-verify vector. verified:true is reached only when leg 2 also verifies, so the terminal status here is the join-passing precondition, not a standalone 'verified'.",
+      "tenant_id": "inc1-tenant",
+      "receipt_id": "r2",
+      "oid_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+      "leaf_index": 1,
+      "tree_size": 3,
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "local": {
+        "algorithm": "RFC6962-SHA256",
+        "audit_path": [
+          { "sibling": "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f", "position": "L" },
+          { "sibling": "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c", "position": "R" }
+        ],
+        "root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38"
+      },
+      "witness_root": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+      "expected": {
+        "local_folds_to_root": true,
+        "join_ok": true,
+        "terminal_status": null,
+        "expected_verified": false
+      }
+    },
+    {
+      "name": "good_composed_index0",
+      "note": "The first receipt of the same 3-leaf population. Its audit path (two right-siblings) differs from index 1, proving position matters.",
+      "tenant_id": "inc1-tenant",
+      "receipt_id": "r1",
+      "oid_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+      "leaf_index": 0,
+      "tree_size": 3,
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "local": {
+        "algorithm": "RFC6962-SHA256",
+        "audit_path": [
+          { "sibling": "e30a4bd77f062160804c590a71c084186d16f2d1033253dc088b2943a2c8bf00", "position": "R" },
+          { "sibling": "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c", "position": "R" }
+        ],
+        "root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38"
+      },
+      "witness_root": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+      "expected": {
+        "local_folds_to_root": true,
+        "join_ok": true,
+        "terminal_status": null,
+        "expected_verified": false
+      }
+    },
+    {
+      "name": "good_composed_single_leaf",
+      "note": "Single-receipt population: the audit path is empty and the fold reduces to leaf === R.",
+      "tenant_id": "inc1-tenant",
+      "receipt_id": "solo",
+      "oid_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+      "leaf_index": 0,
+      "tree_size": 1,
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "local": {
+        "algorithm": "RFC6962-SHA256",
+        "audit_path": [],
+        "root_sha256": "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f"
+      },
+      "witness_root": "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f",
+      "expected": {
+        "local_folds_to_root": true,
+        "join_ok": true,
+        "terminal_status": null,
+        "expected_verified": false
+      }
+    },
+    {
+      "name": "tampered_local_flipped_sibling",
+      "note": "The first sibling in the index-1 audit path has its leading nibble flipped (1 -> 9). The fold no longer reaches R, so the bundle is local-invalid regardless of the witness half.",
+      "tenant_id": "inc1-tenant",
+      "receipt_id": "r2",
+      "oid_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+      "leaf_index": 1,
+      "tree_size": 3,
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "local": {
+        "algorithm": "RFC6962-SHA256",
+        "audit_path": [
+          { "sibling": "990702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f", "position": "L" },
+          { "sibling": "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c", "position": "R" }
+        ],
+        "root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38"
+      },
+      "witness_root": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+      "expected": {
+        "local_folds_to_root": false,
+        "join_ok": true,
+        "terminal_status": "local-invalid",
+        "expected_verified": false
+      }
+    },
+    {
+      "name": "join_root_mismatch_false_authorize",
+      "note": "The false-AUTHORIZE trap. The local audit path is honest and folds to R, but the witness half attests a DIFFERENT root R' (all-b). A verifier MUST return root-mismatch and never verified, even if that witness proof would independently verify on R'. This is the single most important INC1 invariant.",
+      "tenant_id": "inc1-tenant",
+      "receipt_id": "r2",
+      "oid_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+      "leaf_index": 1,
+      "tree_size": 3,
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "local": {
+        "algorithm": "RFC6962-SHA256",
+        "audit_path": [
+          { "sibling": "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f", "position": "L" },
+          { "sibling": "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c", "position": "R" }
+        ],
+        "root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38"
+      },
+      "witness_root": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expected": {
+        "local_folds_to_root": true,
+        "join_ok": false,
+        "terminal_status": "root-mismatch",
+        "expected_verified": false
+      }
+    },
+    {
+      "name": "not_yet_witnessed",
+      "note": "The window root has no external witness proof yet (witness_root is null). The local half is fully derivable, but the composer yields a typed not-yet-witnessed state carrying R, never a false verified.",
+      "tenant_id": "inc1-tenant",
+      "receipt_id": "r2",
+      "oid_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+      "leaf_index": 1,
+      "tree_size": 3,
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "local": {
+        "algorithm": "RFC6962-SHA256",
+        "audit_path": [
+          { "sibling": "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f", "position": "L" },
+          { "sibling": "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c", "position": "R" }
+        ],
+        "root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38"
+      },
+      "witness_root": null,
+      "expected": {
+        "local_folds_to_root": true,
+        "join_ok": null,
+        "terminal_status": "not-yet-witnessed",
+        "expected_verified": false
+      }
+    },
+    {
+      "name": "d1_raw_byte_preimage_would_not_fold",
+      "note": "ADR_023 D1 lock. If a reimplementation hashes the raw 32 OID bytes (leafHash(hexToBytes(oid))) instead of the utf-8 hex string, the leaf differs and the SAME honest audit path no longer folds to R. The conformant leaf is the string preimage; the raw-byte leaf is a control that MUST NOT fold.",
+      "tenant_id": "inc1-tenant",
+      "receipt_id": "r2",
+      "oid_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+      "leaf_index": 1,
+      "tree_size": 3,
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "local": {
+        "algorithm": "RFC6962-SHA256",
+        "audit_path": [
+          { "sibling": "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f", "position": "L" },
+          { "sibling": "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c", "position": "R" }
+        ],
+        "root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38"
+      },
+      "witness_root": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+      "d1_control": {
+        "leaf_preimage_mode": "raw-bytes",
+        "note": "Fold the raw-byte leaf against the pinned string-tree audit_path. It MUST NOT reach root_sha256."
+      },
+      "expected": {
+        "local_folds_to_root": true,
+        "local_folds_to_root_raw_byte_variant": false,
+        "join_ok": true,
+        "terminal_status": null,
+        "expected_verified": false
+      }
+    }
+  ]
+}
