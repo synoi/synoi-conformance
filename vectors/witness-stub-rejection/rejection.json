@@ -1,0 +1,95 @@
+{
+  "vector": "witness-stub-rejection",
+  "spec_version": "synoi.witness.p6c.1",
+  "description": "P6c/P6a: a stub witness proof is REJECTED offline by the real Rekor inclusion verifier, and a genuine Rekor entry is NOT. The rejection predicate is: a proof is rejected before any network fetch when witness_kind !== \"rekor\" OR uuid starts with \"stub:\" OR server starts with \"stub://\". These sentinels are values a real Rekor server can never emit (real uuids are hex, real servers are https). A genuine entry additionally reproduces its checkpoint rootHash via RFC 6962 inclusion (leaf = SHA256(0x00||body), node = SHA256(0x01||left||right)), which a stub cannot: it carries no inclusion proof. Language-neutral: a reimplementation applies the predicate and the inclusion fold from the fields below alone.",
+  "rejection_predicate": {
+    "reject_if_any": [
+      "witness_kind != \"rekor\"",
+      "uuid startsWith \"stub:\"",
+      "server startsWith \"stub://\""
+    ],
+    "rejected_status": "proof-invalid",
+    "rejected_verified": false,
+    "note": "proof-invalid (not unverified): a stub proof reaching the real verifier is an injection/integrity event and must read loud."
+  },
+  "cases": [
+    {
+      "name": "genuine rekor entry is accepted by the guard and its inclusion proof reproduces the checkpoint root",
+      "proof": {
+        "witness_kind": "rekor",
+        "server": "https://rekor.sigstore.dev",
+        "uuid": "108e9186e8c5677a6847221de98e047dbfd73c86211b00e80816953020258da3817b13ddf7f2ed0a",
+        "body_b64": "eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJraW5kIjoiaGFzaGVkcmVrb3JkIiwic3BlYyI6eyJkYXRhIjp7Imhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiJmMmJlNGEwYzdhMjM3YmFiNDY3YTY0NzkzMWJlZGI3Y2E0YjZiMjFiNGU5ZTg3MDVhOTAzNDEwNTlmMzM0MTVlIn19LCJzaWduYXR1cmUiOnsiY29udGVudCI6Ik1FWUNJUUN1QkJEZmVUKytNUWZMalRXV1ArekNsTHpPUHBodTd0QnZ3Mm9lUkI5R2RBSWhBS2k0Y21wamZxY2t1ZDN2dDdqdGhoRTFqanBGNnJMUUVZaTd2QjVXZjdYRiIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVUkRWRU5EUVhCRFowRjNTVUpCWjBsVlNWSlJaMWhHVDA1aFFtMUpWRkp0V25CeFVFMWtiMkZJUW5WcmQwTm5XVWxMYjFwSmVtb3dSVUYzVFhjS1RucEZWazFDVFVkQk1WVkZRMmhOVFdNeWJHNWpNMUoyWTIxVmRWcEhWakpOVWpSM1NFRlpSRlpSVVVSRmVGWjZZVmRrZW1SSE9YbGFVekZ3WW01U2JBcGpiVEZzV2tkc2FHUkhWWGRJYUdOT1RXcFZkMDVxU1RGTlZGRXdUMVJSTWxkb1kwNU5hbFYzVG1wSk1VMVVVVEZQVkZFeVYycEJRVTFHYTNkRmQxbElDa3R2V2tsNmFqQkRRVkZaU1V0dldrbDZhakJFUVZGalJGRm5RVVUyVm1zdlZtZEpObEZUVEZwbk0zWk1kaTk2UkVKSE1FNVVaamhyTDNseEwweG1hMjhLZHpsSVZqVm1VV1JwVkU1WFRsRmlTbEF4YVRZNWRtaHFWRTVoYkd4WlRsTmpiak5aTVhaSUt5c3pOM0F2VEZsaU1YRlBRMEZoT0hkblowZHlUVUUwUndwQk1WVmtSSGRGUWk5M1VVVkJkMGxJWjBSQlZFSm5UbFpJVTFWRlJFUkJTMEpuWjNKQ1owVkdRbEZqUkVGNlFXUkNaMDVXU0ZFMFJVWm5VVlZyYkM4ekNuSkJNWFpyWkhkdk1tVkhibFZJVFdOb1FtWjJWblJyZDBoM1dVUldVakJxUWtKbmQwWnZRVlV6T1ZCd2VqRlphMFZhWWpWeFRtcHdTMFpYYVhocE5Ga0tXa1E0ZDFsbldVUldVakJTUVZGSUwwSkdaM2RXYjFwVllVaFNNR05JVFRaTWVUbHdZek5PTVZwWVNYVmFWelZ0WWpOS2FscFROV3RhV0ZsMlRtMVNiQXBPYlZacldXcHNhRTV0V1RWT1JFVTFUV3BGZWs1VVVUTmFSR3hvVFZSa2FscFVUVFZOVkdkM1RsUlJkMDU2UVhsTmFUaDRXV3BCZUZwWFNtcE5SMDE1Q2s1VVVtbE5SMDB6VFVOblIwTnBjMGRCVVZGQ1p6YzRkMEZSUlVWSGJXZ3daRWhDZWs5cE9IWmhXRTU2WkZkV2VVeHRWblZhYlRsNVdUSlZkVnBIVmpJS1RVTnZSME5wYzBkQlVWRkNaemM0ZDBGUlowVklRWGRoWVVoU01HTklUVFpNZVRsd1l6Tk9NVnBZU1hWYVZ6VnRZak5LYWxwVE5XdGFXRmwzWjFsclJ3cERhWE5IUVZGUlFqRnVhME5DUVVsRlpYZFNOVUZJWTBGa1VVUmtVRlJDY1hoelkxSk5iVTFhU0doNVdscDZZME52YTNCbGRVNDBPSEptSzBocGJrdEJDa3g1Ym5WcVowRkJRVnBsYm10UU5HNUJRVUZGUVhkQ1IwMUZVVU5KUVc5dmEwRlBPVzB3VG5KRVdWaGllbU5WTUUxNFptaHZlRE5OV2xGcGJqRmpTMmNLUkZWQ1RqSmlaRkZCYVVKMGNXNDNWMmxJTm5aNFRXMVJNRVV5TlZoamFXaHZlbXgzVGxGcFZrUXpXVU5IYldSeFpFOXFVMEZFUVV0Q1oyZHhhR3RxVHdwUVVWRkVRWGRPYmtGRVFtdEJha0pYUlRkR1UzcEJMMlZNVnpKSWQwNTJaazUzVkhKVVdIWjNjV3N2VFRRekwyOTNNazVWY0dKaU9TOWtVMWMzU1RGbUNqSmFNV1JMYjJkSVpEazBVbVIxTUVOTlNIQjFORUpQY0dsVE1GTkNkSGhWYVZJME1EQlZNRVJ3T1dOTVdrcEVRbTFCT0dScmRqaDFWa2hTV2xkelpYVUtVRUZwUm1sWk5HcHVjMVk0Wms1Q1dHZG5QVDBLTFMwdExTMUZUa1FnUTBWU1ZFbEdTVU5CVkVVdExTMHRMUW89In19fX0=",
+        "anchored_root_hex": "f2be4a0c7a237bab467a647931bedb7ca4b6b21b4e9e8705a90341059f33415e",
+        "inclusion_proof": {
+          "log_index": 128095838,
+          "tree_size": 2134831640,
+          "root_hash_hex": "9aff2ae005a8920e3d3ccf8a2f4c46194a8b4dd495c20275051b490d37354aa3",
+          "hashes_hex": [
+            "3612e94e517efdb7167011615980841f22d3c75f5b4dfb4f70764becfe959f89",
+            "772c1e4de98ba096e59822175714ea950792563bd8c85df4924f7a6a5fe8017c",
+            "bf629c1c8dd60eaa9dd311ff16a924bbcb701e1d379027303854696d272e4f22",
+            "d86939e7e70b4955fe5cf80e4a960c52fe16b5a50debec523aeaf89de5324472",
+            "ff4bed32e64a8bc3dcfaf1d3e27650dbc2d91671d884b791972acf470481fc87",
+            "2f979093ed30736edec50adb1b625f878742b5c360890e89d37bb3035c1ad2e0",
+            "885a3f152185ae5d78f6f93c41c9d5580862495a207211ab077c3584c66a05f8",
+            "f784a5326ff4e99c3a430b2bba8539a388e61bb43ddf78379aaf53b5669e8ce3",
+            "0fc5a96a096d2d6d70fb6a3019c7cd6001c9fdce41220b5e7962b50e9f610e9b",
+            "8bffd8fb01787c59e2de65afb8f8e897ab5cbf90ab748c84f5636ab162984b49",
+            "a58c65d91ba71e580bb1b37387a3722990a2672afd1681298d0482995e1115d6",
+            "870359d1bdbd00324c1fe6b7352fcf6c7a99e93a4840dc9ef1d9c6c7f3e96588",
+            "527f3866117efdfdd5ae3c3f2bbfce49dd5ee36e9cb93c6b1f81c22df829d978",
+            "c691d41b9d61b856343a647145ad2eb0a44f2e098f0d62c2e18f642361fe7a54",
+            "5f7e3478711a1a8d9a7fba197d5603ef6a66d46d3460ad883e9749a15ee3ba41",
+            "856577d00195be4b60feff3413105fbbcf54c7129ef2bcb444d83efb01380631",
+            "4c5dea8badb49badd97dbf71d1e23f50dc7e315a4aeac26e46e58b4bdb971ca5",
+            "1982fc0f47293780634d92a560119e7914b830f2881c84e8a24a20913db1433e",
+            "095d7368f4b4a7daf50012ec11700b1663a899fefa7d60724e022e223119239c",
+            "a12463564ba7a9ed3019d5ece0caa3b38aa073462fd2de337e8e4a29c1df0b5c",
+            "beac6604fc125545cd902518d9245fd3b8e036910306a159f0aa97d489049c08",
+            "63fbcb3e72a1f090f5f520001892aa6810c234bfebbf85d766bca412b085da5d",
+            "2837d53671fb17bd63c4191384196d8df6dafaeca803c9af4669f1b737c373cf",
+            "8d5f018fd493bfbd56d2ddb24629f5ebd1216566a0edd049e2f06e2c7dd42c14",
+            "eb71b7e59580d8980e1376d7bb4a0a86ba37b624782033c7d4880ca76d7fa639",
+            "9ad6b97c7fe0170c49ff47d3f321a99f7b05098d06d51639e7921f966d0b2273",
+            "eeff2a3c73432deae976e68cc74e9e6ff3308284307334e7fdc606297ffdc19e",
+            "906353f3bc653d8e5966373b0925f03ecdd0b0baf95039d510437789979b818c",
+            "fb866d618c5b54c4d1a22a6406a929c2679deaad30c837a029693c0b7a82c320",
+            "bcaca02bead28e49be411d68f36897e4684f7f3f8b58bfa5e04b9987be876dcc",
+            "c2727e45dba728eac76215bc7d19c206a88ea64524c606556ad1b066a3cf91fe"
+          ]
+        }
+      },
+      "expected_rejected_offline": false,
+      "expected_inclusion_reproduces_root": true
+    },
+    {
+      "name": "stub proof is rejected offline by the stub sentinels (uuid stub:, server stub://)",
+      "proof": {
+        "witness_kind": "stub",
+        "server": "stub://witness-stub",
+        "uuid": "stub:f2be4a0c7a237bab",
+        "body_b64": null,
+        "anchored_root_hex": "f2be4a0c7a237bab467a647931bedb7ca4b6b21b4e9e8705a90341059f33415e",
+        "inclusion_proof": null
+      },
+      "expected_rejected_offline": true,
+      "expected_status": "proof-invalid",
+      "expected_verified": false
+    },
+    {
+      "name": "stub proof maliciously relabeled witness_kind:rekor is STILL rejected by the sentinels",
+      "proof": {
+        "witness_kind": "rekor",
+        "server": "stub://witness-stub",
+        "uuid": "stub:f2be4a0c7a237bab",
+        "body_b64": null,
+        "anchored_root_hex": "f2be4a0c7a237bab467a647931bedb7ca4b6b21b4e9e8705a90341059f33415e",
+        "inclusion_proof": null
+      },
+      "expected_rejected_offline": true,
+      "expected_status": "proof-invalid",
+      "expected_verified": false
+    }
+  ]
+}
