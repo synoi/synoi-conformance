@@ -1,0 +1,104 @@
+{
+  "kind": "completeness_spine_v1",
+  "description": "Ordered hash-chain + RFC 6962 Merkle root over a receipted population, in Journal order. Frozen by ADR_023 D1 (leaf preimage = leafHash of the 64-char hex OID STRING) and D2 (ordered RFC 6962 construction only, never sorted+deduped). All hashes are bare lowercase hex, no sha256: prefix. A reimplementation in any language reproduces every expected value from ordered_oids alone.",
+  "constants": {
+    "algorithm": "RFC6962-SHA256",
+    "leaf_preimage": "leafHash(oid_hex) = SHA-256(0x00 || utf8(oid_hex_64)); the leaf hashes the hex STRING, NOT the raw 32 digest bytes (ADR_023 D1 / FORK-B)",
+    "internal_node": "internalHash(l,r) = SHA-256(0x01 || l || r)",
+    "empty_root": "SHA-256(empty) per RFC 6962 for a zero-leaf tree",
+    "chain_genesis_preimage": "SYNOI-COMPLETENESS-SPINE-v1",
+    "chain_genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+    "chain_step": "head_i = SHA-256(head_{i-1} || '|' || oid_hex_i), head_0 = chain_genesis_hash, bare-hex prev",
+    "empty_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "cases": [
+    {
+      "name": "empty_population",
+      "ordered_oids": [],
+      "expected": {
+        "size": 0,
+        "root_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+        "head_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c"
+      }
+    },
+    {
+      "name": "single_leaf",
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "expected": {
+        "size": 1,
+        "root_sha256": "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f",
+        "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+        "head_hash": "36a2515a2e24c041a1477e2ed9e1cb7f45fe04b2a486b7071a2017f50f246288"
+      }
+    },
+    {
+      "name": "pair_journal_order",
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "expected": {
+        "size": 2,
+        "root_sha256": "b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb",
+        "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+        "head_hash": "b1b5131b75d1ecb2c6ef3ce40a5739e8bc5f4deb9262625b21371ae858eee38f"
+      },
+      "d1_negative": {
+        "note": "Hashing the raw 32 digest bytes instead of the hex string (the rejected FORK-B variant) produces a DIFFERENT root. The conformant root above MUST NOT equal this.",
+        "root_if_raw_bytes_hashed": "cc15b132263fd4fd2748c0e7cb9e1c4ad0afe70fcf9382ee644c4da8af0286a5"
+      }
+    },
+    {
+      "name": "d2_journal_order_not_sorted",
+      "note": "ordered_oids is in Journal (chronological) order f... then 0..., which differs from lexicographic sort. The conformant root uses this Journal order. A sorted+deduped construction (the rejected FORK-A / batch-seal variant) would reorder to 0... then f... and produce a DIFFERENT root.",
+      "ordered_oids": [
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      ],
+      "expected": {
+        "size": 2,
+        "root_sha256": "7f47d4e01835440ee564502642fcf188f2bad4fec35c6d106fb8da4a4fb6719c",
+        "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+        "head_hash": "c4c68b132e2b77204432a773c3236d351accc2a3f3a97367efcda82d7cd8cf56"
+      },
+      "d2_negative": {
+        "note": "Sorting the leaves ascending before building the tree produces this DIFFERENT root. The conformant root above MUST NOT equal this.",
+        "root_if_leaves_sorted": "c0c449e1fbc1f99fcd83fe3cdf07c62f5bf2ad1c2bde75659eebaf8aacc52202"
+      }
+    },
+    {
+      "name": "interior_tamper_baseline",
+      "note": "Three leaves in Journal order. Companion to interior_tamper_mutated, which changes only the middle oid.",
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "expected": {
+        "size": 3,
+        "root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+        "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+        "head_hash": "f712fa82421b5103e110c1b6984155594259593e2bea686497c16f7ddd6c301d"
+      }
+    },
+    {
+      "name": "interior_tamper_mutated",
+      "note": "The middle oid (index 1) is replaced. Both root_sha256 and head_hash MUST differ from interior_tamper_baseline, and the linear chain MUST first diverge at chain step index 1 (the tampered position).",
+      "ordered_oids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "3333333333333333333333333333333333333333333333333333333333333333"
+      ],
+      "expected": {
+        "size": 3,
+        "root_sha256": "4ae5243a547ed0a1910e8d1c1abd9ea1940ec58170d42bc0fb2b3e1200895e5e",
+        "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+        "head_hash": "2f41b2454f36316edb2474a9caf5a8d08f171f35f8596a3fc5c0c80797d0e620",
+        "first_divergent_chain_index_vs_baseline": 1
+      }
+    }
+  ]
+}
