@@ -33,7 +33,8 @@ async function main(): Promise<void> {
     `export const validateWorkflowDefinition     = m.validateWorkflowDefinition\n` +
     `export const validateWorkflowInstance       = m.validateWorkflowInstance\n` +
     `export const validateGapDecisionReceipt     = m.validateGapDecisionReceipt\n` +
-    `export const validateRevocationEvent        = m.validateRevocationEvent\n`,
+    `export const validateRevocationEvent        = m.validateRevocationEvent\n` +
+    `export const validatePerimeterDeclaration   = m.validatePerimeterDeclaration\n`,
     'utf8')
 
   const report = await runProtocol({
@@ -46,8 +47,8 @@ async function main(): Promise<void> {
   ok('gap: vectors_run > 0',          report.vectors_run > 0)
   ok('gap: all vectors passed',       report.failed === 0,
      report.failures.map(f => `${f.vector_name}: ${f.reason}`).join(' / '))
-  ok('gap: at least 24 validate + 6 oid vectors',
-     report.vectors_run >= 30)
+  ok('gap: at least 40 validate + 7 oid vectors',
+     report.vectors_run >= 47)
 
   process.stdout.write(`\n${passed} passed, ${failed} failed (${report.vectors_run} GAP vectors)\n`)
   process.exit(failed > 0 ? 1 : 0)

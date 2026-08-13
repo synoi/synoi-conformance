@@ -1,0 +1,419 @@
+{
+  "kind": "perimeter_declaration_v1",
+  "description": "Signed synoi.perimeter.v1 perimeter declaration. The scope statement a completeness assertion is complete WITHIN: which chokepoints are active at what enforcement quality, and which surfaces are NOT covered. The signed bytes are RFC 8785 JCS over the CDRO content core (the envelope minus the six detached fields), the OID is the sha256 of those same bytes, and the hybrid Ed25519 + ML-DSA-65 DSSE envelope binds the perimeter payloadType so it can never be replayed as a decision receipt. A reimplementation reproduces canonical_payload and oid from the envelope alone, verifies the attestation with verifyAttestation, checks the prev chain, and rejects the enforcement overclaim case.",
+  "constants": {
+    "schema": "synoi.perimeter.v1",
+    "object_type": "gap:perimeter_declaration",
+    "payload_type": "application/vnd.synoi.perimeter+json",
+    "oid_rule": "oid = 'sha256:' + SHA-256(canonicalize(cdroContentCore(envelope))); the SAME bytes the attestation signs, so a verifier re-derives the OID from the signature payload it already holds",
+    "canonicalization": "RFC 8785 JCS; object keys re-sorted lexicographically",
+    "hybrid_rule": "attestation carries BOTH ed25519 AND ml-dsa-65 over PAE(payloadType, canonical); both required",
+    "null_omit": "an optional field that does not apply is OMITTED entirely, never set to null. A null key changes the canonical bytes and therefore the OID and the signature; an absent key does not",
+    "enforcement_ceiling": "C1 through C5 may claim structural; C6 may claim at most cooperative; C7 may claim at most observational. A chokepoint may claim WEAKER than its class ceiling, never stronger",
+    "binding_direction": "synoi.reconciliation.v1 references BOTH synoi.completeness.v1 and synoi.perimeter.v1. synoi.completeness.v1 references NEITHER, because a required new field on that frozen body would change its canonical bytes and make every previously signed assertion unverifiable"
+  },
+  "ed25519_pub_b64": "qr2rctiqayDcTwV9YD+QO2Ql+81pbLfNMujf23qd4VY=",
+  "ml_dsa_pub_b64": "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",
+  "cases": [
+    {
+      "name": "genesis_declaration_verifies",
+      "declaration": {
+        "oid": "sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd",
+        "type": "gap:perimeter_declaration",
+        "gap_version": "1.0",
+        "tenant_id": "tenant:vector",
+        "created_at_ms": 1750000000000,
+        "created_by": "actor:gateway",
+        "body": {
+          "schema": "synoi.perimeter.v1",
+          "governed_subject": {
+            "platform": "replit",
+            "workspace_id": "ws-vector",
+            "deployment_id": "dep-vector"
+          },
+          "chokepoints_active": [
+            {
+              "class": "C1",
+              "surface": "gateway:brokered-credential:stripe",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C5",
+              "surface": "mcp:https://gw.example/mcp/proxy",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C7",
+              "surface": "github:webhook",
+              "enforcement": "observational"
+            }
+          ],
+          "blind_spots": [
+            {
+              "surface": "replit:agent-shell",
+              "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+              "class_unavailable": "C4"
+            },
+            {
+              "surface": "replit:static-deployment",
+              "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+              "class_unavailable": "C1"
+            }
+          ],
+          "completeness_scope": {
+            "populations": [
+              "action_log",
+              "receipts"
+            ],
+            "from_seq": 1,
+            "to_seq": 4096
+          },
+          "effective_from_ms": 1750000000000,
+          "effective_to_ms": 1750086400000
+        },
+        "attestation": {
+          "payloadType": "application/vnd.synoi.perimeter+json",
+          "payload": "{\"body\":{\"blind_spots\":[{\"class_unavailable\":\"C4\",\"reason\":\"The workspace shell tab runs commands with no pre-execution hook a third party can register.\",\"surface\":\"replit:agent-shell\"},{\"class_unavailable\":\"C1\",\"reason\":\"A static deployment has no env vars and no run command, so no credential can be brokered.\",\"surface\":\"replit:static-deployment\"}],\"chokepoints_active\":[{\"class\":\"C1\",\"enforcement\":\"structural\",\"surface\":\"gateway:brokered-credential:stripe\"},{\"class\":\"C5\",\"enforcement\":\"structural\",\"surface\":\"mcp:https://gw.example/mcp/proxy\"},{\"class\":\"C7\",\"enforcement\":\"observational\",\"surface\":\"github:webhook\"}],\"completeness_scope\":{\"from_seq\":1,\"populations\":[\"action_log\",\"receipts\"],\"to_seq\":4096},\"effective_from_ms\":1750000000000,\"effective_to_ms\":1750086400000,\"governed_subject\":{\"deployment_id\":\"dep-vector\",\"platform\":\"replit\",\"workspace_id\":\"ws-vector\"},\"schema\":\"synoi.perimeter.v1\"},\"created_at_ms\":1750000000000,\"created_by\":\"actor:gateway\",\"gap_version\":\"1.0\",\"tenant_id\":\"tenant:vector\",\"type\":\"gap:perimeter_declaration\"}",
+          "signatures": [
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ed25519",
+              "sig": "YCyf52RHub1zN2PDvqOixqFvUoQRdMCC9GlbCaRNJIUN1cNVsq75DzhMHhugnf6cI7qn121KoZnwaLpe/a2RDA=="
+            },
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ml-dsa-65",
+              "sig": "F4sw3fLQXxZyPa0kqYwlL1QOPD0JeL4VFk8WISx6Pcoi2ZXlTQgSD3Lk1G+z5gAr4H9xaxlbUe36QZcNI/O453dALTJmQWrBh6vRl2vjjeMkq8s01E8KaMwYotzwIwwGaogEDkKwQ+ZJjftkx+ZmzUJXpUqPS737KGqGkHYQ99mzDEQFZYYMFNeUJSBJVtDd6JMP1fZjL3qlWJ2bjdL2I3L5z4x1BtC+D4AWvtmGUF87qaRr8/QQGZuy+2QYJItt5YdkBybEpFdjld1Z5asM1Qp+hEZ4ZYQLOE00wad2OFKoBa4cGvYWd5MZlGqWH/HDnDqOEgqgP0zLDXfKBP9ebjN0qWczZlW0dDAt7kUpGZTVxAThxeYoVstBdwSU41d46Rej9hoTsuoeNgpSjgx43wz8NWwgRfruXoOt/zQC5L8/PrXSZKBqHy5SXGI6s4/Y3+35EmDuOSjI1zeFzC+8y7gnFRlcQHqjlkQpiVCRbp8uQ1ePDMhKJ+2/Je4cgnN0k9DSEUNMFqEVBDhY059wL2a3SEikylCcZwvnslOeMA7x167UrWJJv4VJ9iDind5UHE/f46M9/KXArn6dcc7bWU7jWq4hHnhIshsWnNL5uahx9fxD5Dnhj8Ly+ZYtPulO1Q69tqVz5YOpKlQMOPPkKBRAfUGsqozoQgsSrpXKYbS5ZyLICGHuMtUR+1eG5ouDThW6gnTts6Puq8xVCdmhBaJTyW2cC76NpcnfA6ld+TmTrS4NKVN82ySKGB9y6FI9tp3I1g1zd2JmnrZRcIaVBTe3QTHFkDyHfPJrsRhLGqAwV0++ZxQ7XX/iFLK2m5ouYTG/f1J9AUJuvGQHusFuf++BqSDnJ25S4sHb8C5XKSEgUtmVmur4YHuxZqsksVRbbWV1O0w3kea5a+dlrqXvYHgBWb8RqXfoVFEIxnSjxF/bRGasLhn85y2nBl+KD79lEeg/JqGxFMqhdMi+REkSXCh1JBUup2Dmav4irtjNFsCQmyGONRbsL2mSYHu1GcAagOgilPFXQZrA/bqMptOWqGQR17t2FVsvaD8fdQgx6wPIXmGvKNA+j3lm0lJX67qEjBlhdd54/AnjEMoXtrNj31SoKqU1NKzXfgt/oRPfzirElwPYbqUsn9JPe7/x82PiZe4KcZb1eE/bWgd1rsMMXggi3XdcLxb7v4s2yVufGx4VKOr/4nUgCS83APCZDKaCWKIS/L6YdIKL96c56UEKBKG8mPA2vTG2H3tO1+HEQ4Zn9rN6JGbSdIEB5mjR3g8bQAxJc4AoPe+YYkWBqkivsuBGZvsuOVajpb4a5qqs9xFHDYdEG8PJanrBZBqBAZJfXiSrP1W5GNKcqmdknwNB5cmT10yxscEtAr4+AlvfK3wL+wILLwZ4NKSjyhM4WObrKAD4dy67YCwIcUNaf6M9dOHstsMUWOl/C2/fq8dfp/jeA13Jv6ua/4PeOA+mrnsLis2IhM7h+lNIQzf9prp+HXyGg/mTzfM5RLYtAnXYw0mPsa+Mlwqg+XnaLfgAHqg+Yc7f+mFiVRKTN41rCMPpuGj2n9nf/+eAfaWAIw9rB9HAU/s4xzm7W0zmOR51VLnd0YdAz92GEqHhSJBkfRlbdlxwhpb8gG76BFllfp0BZb85o/DqVURuMNzHL1Ulg5cNfySbYgCFOxrQ//lFTz5c+GxVYSsyRpW7nE4BjCGJJHp60x/Z/cQyHRopJY8sY0BaPHmPE1WqkTWUSBshkEU3PjQ7Ct2pgQWctZMza9ZKqRGCW4EjrmWfOKysX67UYboVdV+uiJAzJ0cn/lvFs3SxLccmEV3W2FUsNyEqk8YYPV2dpwxX169pYb1KfMGpwPhHYjY2ZC/KlJVh+mUZ+YiFyBf6bU/0aSo9qOAAwPXrGV6lK0JJTlSSc0CmgqcDEEiAjPN+TMWdYCb9GIKSQ2AtQBkQo8TlMbUi8UB+oOROVqgqzcBRc9s1WV0+ztCOkuoqpjVL8O9dWHaBMCWir/veR8eIfzpv0ppP21Ffw+hNVzrPi9vxvDGEh8WhQPVR8Hbyko0hi/3CYruMIH07A+bVA5GhjGA+Jg/soRNLWwEgXK6bEjcpd1wzenybUCfNCP//PBEIW6/BmTiabErd64sRwjKghSyLgntuiPUnMWqGmuNoE5eh1JxnzGa/5+7C4T7+re8cEgSaUBtJ5ZNHrSeGgatuJFmtuRqlZlPr2I+pa764RGF0eab4abHSZRgwgnuw33VZ6YYSwsR7g3y/9UsH9IcZUA7Ryk4hn+pgiTIReujc0YdqcKJY1af8q219fESIulp5ByeN/XjcWSG+XWZCWkW+DhHKJpJYGZBR7kVXh8+NH5o+Z6Gf8s1KP6WfyKfJQUQofzqQPJK9gbWAHV/YLBAsSX1IUnfiL3K/gE3ZS1WOAJHcuPxUm1Hi32FAXhEqX20LOdHJS6WCfVa+gmuQwUrrz703tvtN7osvRcV5/xve2u7kHv5JKfNuMVObh+6bxz94PVx1lghiIFxvNT+U6TXEqS7L+nlEr7FBtxCHNIdZggMDe32lnyRmxFMsEujp/bqs/WM2EGbYE3puR2+l8E5ZHB1YDYH9vaNzHobZ5xqTcbOxjJCX7Dlr6u7yQMWVBvi3hctJccIu7u4AhHa4ti2CC9bhQ0Mviw8izK/PqYUB8mPtEn4XQEMER3vER1WkUL1OCjSCXbQ1zWVWKY0I4WrtnV+l2b1dP9JKhpvJ4E5i1595ryRpTNgwRVZMkq9G7HOvWkCAkzQ4DzGRc4fI4wD7f/TG3h4ZeUmw90RRlhSbVMwlxFH3MyIY0+c+zcvmD2z5drb8afi4EPIO0QDV3pHSWYgH1G0aAj1hu7SoOnhjJfeHN2Cwy2wWgD7/0YMJT6A2itvcv+0YzhDASE/sORtOEehdWlT7fIvjcMCHTAl2zNEQmSMethZ88wNNtSHrLSbbymo5S1bD3FA93qpVHHyxRZiCe5VDC3ztdeR5/PTEn7PY76qg9zOMfP+MUeVI2byZirPD+HQAMyHvRcfufvWTUj/CWnBT0MF/4k3XYistDP3vlKWAqYg7DeMMgP/AqgqtufCYmGeKnSerlQRb2O6RjoddIq+Za+lXmQbKD1BPChKPJ2GGgxafF7Dma6SAknM8nSDPwUol8xhAll7IJFe/+a3of/rJIzxJql34/i0RvThwrPHEeWbwBDiQnNcpNHY8jfY5U/6H2CeLyQ40AwfvE/MBEutD/DGKK3MD8RdJ1sYcK/Zp34Z551eY0iKdTyGc8nFncE4dxujy846gV+vfylqwX/YqOJ/7fTkeTstojCfvjmrKz3M2jjmUprusADgiHZOuzwXBHmlwPDDio17eYGfBfRfYCp+K2YDu5WxjhWh5oAGoWfgUEL7syC0jH5S/Yu5N1d4PYknKF/SBPvM6mNab4vc/InW8WE844JZpBCczqKmX6p40SZ9WRPUmB2OokJbqgCXpc1Fv0wUStrs+ur4uWuB1zVwOQfarC6Qgk2KidUkcACrddU5V976VhUG9NEsRapI5M4ffWI2E7yv1BEooVVEvXABLOl4PfX9lvA9MeUURzKxVOht0oyMlqi1vRlgpv5uivUQJnKAiEV+iLaEjQRZmRjA2ZNV/TmuK2y5dJp4L3nr8/1JcfkKGDi6u0mcb2lkwdhYbaOUZTYRUb2FmaeWY0KrNCL4uRZkpc6SZuzK1UqiSCJjoW+/MK5kKz+/58qM3e0F8XlUAa36NvG9xDSTPsMTayGZi8jB+BxxbVbnu+j5eZqvXSgDlGNF9JsEAB6RG2bgEsLQRB5iw62Qg9rxNU36wpF5wE/mnQlY0unckIsn9KZgyMuaN4iP52TLRn1cBVlzkJDRSBIzdsaLqO5L8gU/XG/upDmujEYp3/0Z9k05/LvRZHk1p/eTLLNXm0dhg1od6tQwGucLYZwLTREyLTjKnjcF3ICn0q/jixLFLt8K1kJow2gXFCFMe/EK1OwJ6mAkQv6lnuFR+Jqtmjf7Pwl9/ODu+YMTRNgg0bzzHmW0CxpCKos3ROx463de3JpvUwSaPD0fj62mBH8dIAzBpaxjANfQfyOZqOiVL6BUecJPiK5jifIctkG92rNDtyJja8LVo4ySAq1QRNsWmr0r8E+fLQqDVF929W4cWvpW3AyocFnR8/Ukx7CDt+a3iQTTB5uPbYw/sK6QOHbgrBkVh4MZCigg+gZm/lxfsmiXl+1tp6JhSMZ0FGsuxONh53oAdXa+FCL4aX6lPOxbM6thwt7QD/U61gylZomxZpRUakDPrK0Q3lorvapPUyu6xOPy+retDdF+Wefvsbt6cLB1a1oK2ObycbRgSHSVtieMuPIa1Oo2pu/YIGSRPo6i22QghisxOX5jR8wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgoPFxsg"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "canonical_payload": "{\"body\":{\"blind_spots\":[{\"class_unavailable\":\"C4\",\"reason\":\"The workspace shell tab runs commands with no pre-execution hook a third party can register.\",\"surface\":\"replit:agent-shell\"},{\"class_unavailable\":\"C1\",\"reason\":\"A static deployment has no env vars and no run command, so no credential can be brokered.\",\"surface\":\"replit:static-deployment\"}],\"chokepoints_active\":[{\"class\":\"C1\",\"enforcement\":\"structural\",\"surface\":\"gateway:brokered-credential:stripe\"},{\"class\":\"C5\",\"enforcement\":\"structural\",\"surface\":\"mcp:https://gw.example/mcp/proxy\"},{\"class\":\"C7\",\"enforcement\":\"observational\",\"surface\":\"github:webhook\"}],\"completeness_scope\":{\"from_seq\":1,\"populations\":[\"action_log\",\"receipts\"],\"to_seq\":4096},\"effective_from_ms\":1750000000000,\"effective_to_ms\":1750086400000,\"governed_subject\":{\"deployment_id\":\"dep-vector\",\"platform\":\"replit\",\"workspace_id\":\"ws-vector\"},\"schema\":\"synoi.perimeter.v1\"},\"created_at_ms\":1750000000000,\"created_by\":\"actor:gateway\",\"gap_version\":\"1.0\",\"tenant_id\":\"tenant:vector\",\"type\":\"gap:perimeter_declaration\"}",
+        "oid": "sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd",
+        "payload_type": "application/vnd.synoi.perimeter+json",
+        "validates": true,
+        "verifies_under_perimeter_type": true,
+        "verifies_under_gap_receipt_type": false,
+        "blind_spot_surfaces": [
+          "replit:agent-shell",
+          "replit:static-deployment"
+        ],
+        "surface_classification": {
+          "mcp:https://gw.example/mcp/proxy": "governed",
+          "replit:agent-shell": "declared_blind_spot",
+          "replit:scheduled-job": "undeclared"
+        }
+      }
+    },
+    {
+      "name": "successor_chains_to_genesis",
+      "declaration": {
+        "oid": "sha256:02a676b167e2ea2569206cfdf589d2efb93b2e3ed38565d1a2148f6cfa9bd8b1",
+        "type": "gap:perimeter_declaration",
+        "gap_version": "1.0",
+        "tenant_id": "tenant:vector",
+        "created_at_ms": 1750086400000,
+        "created_by": "actor:gateway",
+        "body": {
+          "schema": "synoi.perimeter.v1",
+          "governed_subject": {
+            "platform": "replit",
+            "workspace_id": "ws-vector",
+            "deployment_id": "dep-vector"
+          },
+          "chokepoints_active": [
+            {
+              "class": "C1",
+              "surface": "gateway:brokered-credential:stripe",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C5",
+              "surface": "mcp:https://gw.example/mcp/proxy",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C7",
+              "surface": "github:webhook",
+              "enforcement": "observational"
+            },
+            {
+              "class": "C4",
+              "surface": "replit:agent-shell",
+              "enforcement": "structural"
+            }
+          ],
+          "blind_spots": [
+            {
+              "surface": "replit:static-deployment",
+              "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+              "class_unavailable": "C1"
+            }
+          ],
+          "completeness_scope": {
+            "populations": [
+              "action_log",
+              "receipts"
+            ],
+            "from_seq": 1,
+            "to_seq": 4096
+          },
+          "effective_from_ms": 1750086400000,
+          "prev": "sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd"
+        },
+        "attestation": {
+          "payloadType": "application/vnd.synoi.perimeter+json",
+          "payload": "{\"body\":{\"blind_spots\":[{\"class_unavailable\":\"C1\",\"reason\":\"A static deployment has no env vars and no run command, so no credential can be brokered.\",\"surface\":\"replit:static-deployment\"}],\"chokepoints_active\":[{\"class\":\"C1\",\"enforcement\":\"structural\",\"surface\":\"gateway:brokered-credential:stripe\"},{\"class\":\"C5\",\"enforcement\":\"structural\",\"surface\":\"mcp:https://gw.example/mcp/proxy\"},{\"class\":\"C7\",\"enforcement\":\"observational\",\"surface\":\"github:webhook\"},{\"class\":\"C4\",\"enforcement\":\"structural\",\"surface\":\"replit:agent-shell\"}],\"completeness_scope\":{\"from_seq\":1,\"populations\":[\"action_log\",\"receipts\"],\"to_seq\":4096},\"effective_from_ms\":1750086400000,\"governed_subject\":{\"deployment_id\":\"dep-vector\",\"platform\":\"replit\",\"workspace_id\":\"ws-vector\"},\"prev\":\"sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd\",\"schema\":\"synoi.perimeter.v1\"},\"created_at_ms\":1750086400000,\"created_by\":\"actor:gateway\",\"gap_version\":\"1.0\",\"tenant_id\":\"tenant:vector\",\"type\":\"gap:perimeter_declaration\"}",
+          "signatures": [
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ed25519",
+              "sig": "bs4ovCcVXavnuKCNXKxeMXtshPEgb3NB0LwbOyBS5x/VjIucESaPfRRDxlWn7j/smUekefbc2RnTNmEn72ByDw=="
+            },
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ml-dsa-65",
+              "sig": "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"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "canonical_payload": "{\"body\":{\"blind_spots\":[{\"class_unavailable\":\"C1\",\"reason\":\"A static deployment has no env vars and no run command, so no credential can be brokered.\",\"surface\":\"replit:static-deployment\"}],\"chokepoints_active\":[{\"class\":\"C1\",\"enforcement\":\"structural\",\"surface\":\"gateway:brokered-credential:stripe\"},{\"class\":\"C5\",\"enforcement\":\"structural\",\"surface\":\"mcp:https://gw.example/mcp/proxy\"},{\"class\":\"C7\",\"enforcement\":\"observational\",\"surface\":\"github:webhook\"},{\"class\":\"C4\",\"enforcement\":\"structural\",\"surface\":\"replit:agent-shell\"}],\"completeness_scope\":{\"from_seq\":1,\"populations\":[\"action_log\",\"receipts\"],\"to_seq\":4096},\"effective_from_ms\":1750086400000,\"governed_subject\":{\"deployment_id\":\"dep-vector\",\"platform\":\"replit\",\"workspace_id\":\"ws-vector\"},\"prev\":\"sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd\",\"schema\":\"synoi.perimeter.v1\"},\"created_at_ms\":1750086400000,\"created_by\":\"actor:gateway\",\"gap_version\":\"1.0\",\"tenant_id\":\"tenant:vector\",\"type\":\"gap:perimeter_declaration\"}",
+        "oid": "sha256:02a676b167e2ea2569206cfdf589d2efb93b2e3ed38565d1a2148f6cfa9bd8b1",
+        "payload_type": "application/vnd.synoi.perimeter+json",
+        "validates": true,
+        "verifies_under_perimeter_type": true,
+        "prev": "sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd",
+        "chain_with_genesis_ok": true,
+        "blind_spot_surfaces": [
+          "replit:static-deployment"
+        ]
+      }
+    },
+    {
+      "name": "enforcement_overclaim_rejected",
+      "declaration": {
+        "oid": "sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd",
+        "type": "gap:perimeter_declaration",
+        "gap_version": "1.0",
+        "tenant_id": "tenant:vector",
+        "created_at_ms": 1750000000000,
+        "created_by": "actor:gateway",
+        "body": {
+          "schema": "synoi.perimeter.v1",
+          "governed_subject": {
+            "platform": "replit",
+            "workspace_id": "ws-vector",
+            "deployment_id": "dep-vector"
+          },
+          "chokepoints_active": [
+            {
+              "class": "C7",
+              "surface": "github:webhook",
+              "enforcement": "structural"
+            }
+          ],
+          "blind_spots": [
+            {
+              "surface": "replit:agent-shell",
+              "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+              "class_unavailable": "C4"
+            },
+            {
+              "surface": "replit:static-deployment",
+              "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+              "class_unavailable": "C1"
+            }
+          ],
+          "completeness_scope": {
+            "populations": [
+              "action_log",
+              "receipts"
+            ],
+            "from_seq": 1,
+            "to_seq": 4096
+          },
+          "effective_from_ms": 1750000000000,
+          "effective_to_ms": 1750086400000
+        },
+        "attestation": {
+          "payloadType": "application/vnd.synoi.perimeter+json",
+          "payload": "{\"body\":{\"blind_spots\":[{\"class_unavailable\":\"C4\",\"reason\":\"The workspace shell tab runs commands with no pre-execution hook a third party can register.\",\"surface\":\"replit:agent-shell\"},{\"class_unavailable\":\"C1\",\"reason\":\"A static deployment has no env vars and no run command, so no credential can be brokered.\",\"surface\":\"replit:static-deployment\"}],\"chokepoints_active\":[{\"class\":\"C1\",\"enforcement\":\"structural\",\"surface\":\"gateway:brokered-credential:stripe\"},{\"class\":\"C5\",\"enforcement\":\"structural\",\"surface\":\"mcp:https://gw.example/mcp/proxy\"},{\"class\":\"C7\",\"enforcement\":\"observational\",\"surface\":\"github:webhook\"}],\"completeness_scope\":{\"from_seq\":1,\"populations\":[\"action_log\",\"receipts\"],\"to_seq\":4096},\"effective_from_ms\":1750000000000,\"effective_to_ms\":1750086400000,\"governed_subject\":{\"deployment_id\":\"dep-vector\",\"platform\":\"replit\",\"workspace_id\":\"ws-vector\"},\"schema\":\"synoi.perimeter.v1\"},\"created_at_ms\":1750000000000,\"created_by\":\"actor:gateway\",\"gap_version\":\"1.0\",\"tenant_id\":\"tenant:vector\",\"type\":\"gap:perimeter_declaration\"}",
+          "signatures": [
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ed25519",
+              "sig": "YCyf52RHub1zN2PDvqOixqFvUoQRdMCC9GlbCaRNJIUN1cNVsq75DzhMHhugnf6cI7qn121KoZnwaLpe/a2RDA=="
+            },
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ml-dsa-65",
+              "sig": "F4sw3fLQXxZyPa0kqYwlL1QOPD0JeL4VFk8WISx6Pcoi2ZXlTQgSD3Lk1G+z5gAr4H9xaxlbUe36QZcNI/O453dALTJmQWrBh6vRl2vjjeMkq8s01E8KaMwYotzwIwwGaogEDkKwQ+ZJjftkx+ZmzUJXpUqPS737KGqGkHYQ99mzDEQFZYYMFNeUJSBJVtDd6JMP1fZjL3qlWJ2bjdL2I3L5z4x1BtC+D4AWvtmGUF87qaRr8/QQGZuy+2QYJItt5YdkBybEpFdjld1Z5asM1Qp+hEZ4ZYQLOE00wad2OFKoBa4cGvYWd5MZlGqWH/HDnDqOEgqgP0zLDXfKBP9ebjN0qWczZlW0dDAt7kUpGZTVxAThxeYoVstBdwSU41d46Rej9hoTsuoeNgpSjgx43wz8NWwgRfruXoOt/zQC5L8/PrXSZKBqHy5SXGI6s4/Y3+35EmDuOSjI1zeFzC+8y7gnFRlcQHqjlkQpiVCRbp8uQ1ePDMhKJ+2/Je4cgnN0k9DSEUNMFqEVBDhY059wL2a3SEikylCcZwvnslOeMA7x167UrWJJv4VJ9iDind5UHE/f46M9/KXArn6dcc7bWU7jWq4hHnhIshsWnNL5uahx9fxD5Dnhj8Ly+ZYtPulO1Q69tqVz5YOpKlQMOPPkKBRAfUGsqozoQgsSrpXKYbS5ZyLICGHuMtUR+1eG5ouDThW6gnTts6Puq8xVCdmhBaJTyW2cC76NpcnfA6ld+TmTrS4NKVN82ySKGB9y6FI9tp3I1g1zd2JmnrZRcIaVBTe3QTHFkDyHfPJrsRhLGqAwV0++ZxQ7XX/iFLK2m5ouYTG/f1J9AUJuvGQHusFuf++BqSDnJ25S4sHb8C5XKSEgUtmVmur4YHuxZqsksVRbbWV1O0w3kea5a+dlrqXvYHgBWb8RqXfoVFEIxnSjxF/bRGasLhn85y2nBl+KD79lEeg/JqGxFMqhdMi+REkSXCh1JBUup2Dmav4irtjNFsCQmyGONRbsL2mSYHu1GcAagOgilPFXQZrA/bqMptOWqGQR17t2FVsvaD8fdQgx6wPIXmGvKNA+j3lm0lJX67qEjBlhdd54/AnjEMoXtrNj31SoKqU1NKzXfgt/oRPfzirElwPYbqUsn9JPe7/x82PiZe4KcZb1eE/bWgd1rsMMXggi3XdcLxb7v4s2yVufGx4VKOr/4nUgCS83APCZDKaCWKIS/L6YdIKL96c56UEKBKG8mPA2vTG2H3tO1+HEQ4Zn9rN6JGbSdIEB5mjR3g8bQAxJc4AoPe+YYkWBqkivsuBGZvsuOVajpb4a5qqs9xFHDYdEG8PJanrBZBqBAZJfXiSrP1W5GNKcqmdknwNB5cmT10yxscEtAr4+AlvfK3wL+wILLwZ4NKSjyhM4WObrKAD4dy67YCwIcUNaf6M9dOHstsMUWOl/C2/fq8dfp/jeA13Jv6ua/4PeOA+mrnsLis2IhM7h+lNIQzf9prp+HXyGg/mTzfM5RLYtAnXYw0mPsa+Mlwqg+XnaLfgAHqg+Yc7f+mFiVRKTN41rCMPpuGj2n9nf/+eAfaWAIw9rB9HAU/s4xzm7W0zmOR51VLnd0YdAz92GEqHhSJBkfRlbdlxwhpb8gG76BFllfp0BZb85o/DqVURuMNzHL1Ulg5cNfySbYgCFOxrQ//lFTz5c+GxVYSsyRpW7nE4BjCGJJHp60x/Z/cQyHRopJY8sY0BaPHmPE1WqkTWUSBshkEU3PjQ7Ct2pgQWctZMza9ZKqRGCW4EjrmWfOKysX67UYboVdV+uiJAzJ0cn/lvFs3SxLccmEV3W2FUsNyEqk8YYPV2dpwxX169pYb1KfMGpwPhHYjY2ZC/KlJVh+mUZ+YiFyBf6bU/0aSo9qOAAwPXrGV6lK0JJTlSSc0CmgqcDEEiAjPN+TMWdYCb9GIKSQ2AtQBkQo8TlMbUi8UB+oOROVqgqzcBRc9s1WV0+ztCOkuoqpjVL8O9dWHaBMCWir/veR8eIfzpv0ppP21Ffw+hNVzrPi9vxvDGEh8WhQPVR8Hbyko0hi/3CYruMIH07A+bVA5GhjGA+Jg/soRNLWwEgXK6bEjcpd1wzenybUCfNCP//PBEIW6/BmTiabErd64sRwjKghSyLgntuiPUnMWqGmuNoE5eh1JxnzGa/5+7C4T7+re8cEgSaUBtJ5ZNHrSeGgatuJFmtuRqlZlPr2I+pa764RGF0eab4abHSZRgwgnuw33VZ6YYSwsR7g3y/9UsH9IcZUA7Ryk4hn+pgiTIReujc0YdqcKJY1af8q219fESIulp5ByeN/XjcWSG+XWZCWkW+DhHKJpJYGZBR7kVXh8+NH5o+Z6Gf8s1KP6WfyKfJQUQofzqQPJK9gbWAHV/YLBAsSX1IUnfiL3K/gE3ZS1WOAJHcuPxUm1Hi32FAXhEqX20LOdHJS6WCfVa+gmuQwUrrz703tvtN7osvRcV5/xve2u7kHv5JKfNuMVObh+6bxz94PVx1lghiIFxvNT+U6TXEqS7L+nlEr7FBtxCHNIdZggMDe32lnyRmxFMsEujp/bqs/WM2EGbYE3puR2+l8E5ZHB1YDYH9vaNzHobZ5xqTcbOxjJCX7Dlr6u7yQMWVBvi3hctJccIu7u4AhHa4ti2CC9bhQ0Mviw8izK/PqYUB8mPtEn4XQEMER3vER1WkUL1OCjSCXbQ1zWVWKY0I4WrtnV+l2b1dP9JKhpvJ4E5i1595ryRpTNgwRVZMkq9G7HOvWkCAkzQ4DzGRc4fI4wD7f/TG3h4ZeUmw90RRlhSbVMwlxFH3MyIY0+c+zcvmD2z5drb8afi4EPIO0QDV3pHSWYgH1G0aAj1hu7SoOnhjJfeHN2Cwy2wWgD7/0YMJT6A2itvcv+0YzhDASE/sORtOEehdWlT7fIvjcMCHTAl2zNEQmSMethZ88wNNtSHrLSbbymo5S1bD3FA93qpVHHyxRZiCe5VDC3ztdeR5/PTEn7PY76qg9zOMfP+MUeVI2byZirPD+HQAMyHvRcfufvWTUj/CWnBT0MF/4k3XYistDP3vlKWAqYg7DeMMgP/AqgqtufCYmGeKnSerlQRb2O6RjoddIq+Za+lXmQbKD1BPChKPJ2GGgxafF7Dma6SAknM8nSDPwUol8xhAll7IJFe/+a3of/rJIzxJql34/i0RvThwrPHEeWbwBDiQnNcpNHY8jfY5U/6H2CeLyQ40AwfvE/MBEutD/DGKK3MD8RdJ1sYcK/Zp34Z551eY0iKdTyGc8nFncE4dxujy846gV+vfylqwX/YqOJ/7fTkeTstojCfvjmrKz3M2jjmUprusADgiHZOuzwXBHmlwPDDio17eYGfBfRfYCp+K2YDu5WxjhWh5oAGoWfgUEL7syC0jH5S/Yu5N1d4PYknKF/SBPvM6mNab4vc/InW8WE844JZpBCczqKmX6p40SZ9WRPUmB2OokJbqgCXpc1Fv0wUStrs+ur4uWuB1zVwOQfarC6Qgk2KidUkcACrddU5V976VhUG9NEsRapI5M4ffWI2E7yv1BEooVVEvXABLOl4PfX9lvA9MeUURzKxVOht0oyMlqi1vRlgpv5uivUQJnKAiEV+iLaEjQRZmRjA2ZNV/TmuK2y5dJp4L3nr8/1JcfkKGDi6u0mcb2lkwdhYbaOUZTYRUb2FmaeWY0KrNCL4uRZkpc6SZuzK1UqiSCJjoW+/MK5kKz+/58qM3e0F8XlUAa36NvG9xDSTPsMTayGZi8jB+BxxbVbnu+j5eZqvXSgDlGNF9JsEAB6RG2bgEsLQRB5iw62Qg9rxNU36wpF5wE/mnQlY0unckIsn9KZgyMuaN4iP52TLRn1cBVlzkJDRSBIzdsaLqO5L8gU/XG/upDmujEYp3/0Z9k05/LvRZHk1p/eTLLNXm0dhg1od6tQwGucLYZwLTREyLTjKnjcF3ICn0q/jixLFLt8K1kJow2gXFCFMe/EK1OwJ6mAkQv6lnuFR+Jqtmjf7Pwl9/ODu+YMTRNgg0bzzHmW0CxpCKos3ROx463de3JpvUwSaPD0fj62mBH8dIAzBpaxjANfQfyOZqOiVL6BUecJPiK5jifIctkG92rNDtyJja8LVo4ySAq1QRNsWmr0r8E+fLQqDVF929W4cWvpW3AyocFnR8/Ukx7CDt+a3iQTTB5uPbYw/sK6QOHbgrBkVh4MZCigg+gZm/lxfsmiXl+1tp6JhSMZ0FGsuxONh53oAdXa+FCL4aX6lPOxbM6thwt7QD/U61gylZomxZpRUakDPrK0Q3lorvapPUyu6xOPy+retDdF+Wefvsbt6cLB1a1oK2ObycbRgSHSVtieMuPIa1Oo2pu/YIGSRPo6i22QghisxOX5jR8wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgoPFxsg"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "validates": false,
+        "error_contains": "exceeds the ceiling for C7",
+        "note": "A post-hoc event feed cannot stop anything and can be starved, so \"C7, structural\" is a false statement about the mechanism rather than a debatable characterization. Any conformant implementation rejects it, signed or not."
+      }
+    },
+    {
+      "name": "forged_oid_rejected",
+      "declaration": {
+        "oid": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "type": "gap:perimeter_declaration",
+        "gap_version": "1.0",
+        "tenant_id": "tenant:vector",
+        "created_at_ms": 1750000000000,
+        "created_by": "actor:gateway",
+        "body": {
+          "schema": "synoi.perimeter.v1",
+          "governed_subject": {
+            "platform": "replit",
+            "workspace_id": "ws-vector",
+            "deployment_id": "dep-vector"
+          },
+          "chokepoints_active": [
+            {
+              "class": "C1",
+              "surface": "gateway:brokered-credential:stripe",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C5",
+              "surface": "mcp:https://gw.example/mcp/proxy",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C7",
+              "surface": "github:webhook",
+              "enforcement": "observational"
+            }
+          ],
+          "blind_spots": [
+            {
+              "surface": "replit:agent-shell",
+              "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+              "class_unavailable": "C4"
+            },
+            {
+              "surface": "replit:static-deployment",
+              "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+              "class_unavailable": "C1"
+            }
+          ],
+          "completeness_scope": {
+            "populations": [
+              "action_log",
+              "receipts"
+            ],
+            "from_seq": 1,
+            "to_seq": 4096
+          },
+          "effective_from_ms": 1750000000000,
+          "effective_to_ms": 1750086400000
+        },
+        "attestation": {
+          "payloadType": "application/vnd.synoi.perimeter+json",
+          "payload": "{\"body\":{\"blind_spots\":[{\"class_unavailable\":\"C4\",\"reason\":\"The workspace shell tab runs commands with no pre-execution hook a third party can register.\",\"surface\":\"replit:agent-shell\"},{\"class_unavailable\":\"C1\",\"reason\":\"A static deployment has no env vars and no run command, so no credential can be brokered.\",\"surface\":\"replit:static-deployment\"}],\"chokepoints_active\":[{\"class\":\"C1\",\"enforcement\":\"structural\",\"surface\":\"gateway:brokered-credential:stripe\"},{\"class\":\"C5\",\"enforcement\":\"structural\",\"surface\":\"mcp:https://gw.example/mcp/proxy\"},{\"class\":\"C7\",\"enforcement\":\"observational\",\"surface\":\"github:webhook\"}],\"completeness_scope\":{\"from_seq\":1,\"populations\":[\"action_log\",\"receipts\"],\"to_seq\":4096},\"effective_from_ms\":1750000000000,\"effective_to_ms\":1750086400000,\"governed_subject\":{\"deployment_id\":\"dep-vector\",\"platform\":\"replit\",\"workspace_id\":\"ws-vector\"},\"schema\":\"synoi.perimeter.v1\"},\"created_at_ms\":1750000000000,\"created_by\":\"actor:gateway\",\"gap_version\":\"1.0\",\"tenant_id\":\"tenant:vector\",\"type\":\"gap:perimeter_declaration\"}",
+          "signatures": [
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ed25519",
+              "sig": "YCyf52RHub1zN2PDvqOixqFvUoQRdMCC9GlbCaRNJIUN1cNVsq75DzhMHhugnf6cI7qn121KoZnwaLpe/a2RDA=="
+            },
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ml-dsa-65",
+              "sig": "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"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "validates": true,
+        "oid_matches_canonical": false,
+        "note": "The OID is one of the six detached envelope fields, so it is NOT covered by the signature and every signature check still passes. It has to be re-derived. This matters more here than on a receipt: prev chains by OID, so a forged OID forges chain position."
+      }
+    },
+    {
+      "name": "tampered_blind_spot_rejected",
+      "declaration": {
+        "oid": "sha256:5dec69617d9fe9599707cb11dd19555576c34d43c793e8002d2840dd854a88cd",
+        "type": "gap:perimeter_declaration",
+        "gap_version": "1.0",
+        "tenant_id": "tenant:vector",
+        "created_at_ms": 1750000000000,
+        "created_by": "actor:gateway",
+        "body": {
+          "schema": "synoi.perimeter.v1",
+          "governed_subject": {
+            "platform": "replit",
+            "workspace_id": "ws-vector",
+            "deployment_id": "dep-vector"
+          },
+          "chokepoints_active": [
+            {
+              "class": "C1",
+              "surface": "gateway:brokered-credential:stripe",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C5",
+              "surface": "mcp:https://gw.example/mcp/proxy",
+              "enforcement": "structural"
+            },
+            {
+              "class": "C7",
+              "surface": "github:webhook",
+              "enforcement": "observational"
+            }
+          ],
+          "blind_spots": [
+            {
+              "surface": "replit:static-deployment",
+              "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+              "class_unavailable": "C1"
+            }
+          ],
+          "completeness_scope": {
+            "populations": [
+              "action_log",
+              "receipts"
+            ],
+            "from_seq": 1,
+            "to_seq": 4096
+          },
+          "effective_from_ms": 1750000000000,
+          "effective_to_ms": 1750086400000
+        },
+        "attestation": {
+          "payloadType": "application/vnd.synoi.perimeter+json",
+          "payload": "{\"body\":{\"blind_spots\":[{\"class_unavailable\":\"C4\",\"reason\":\"The workspace shell tab runs commands with no pre-execution hook a third party can register.\",\"surface\":\"replit:agent-shell\"},{\"class_unavailable\":\"C1\",\"reason\":\"A static deployment has no env vars and no run command, so no credential can be brokered.\",\"surface\":\"replit:static-deployment\"}],\"chokepoints_active\":[{\"class\":\"C1\",\"enforcement\":\"structural\",\"surface\":\"gateway:brokered-credential:stripe\"},{\"class\":\"C5\",\"enforcement\":\"structural\",\"surface\":\"mcp:https://gw.example/mcp/proxy\"},{\"class\":\"C7\",\"enforcement\":\"observational\",\"surface\":\"github:webhook\"}],\"completeness_scope\":{\"from_seq\":1,\"populations\":[\"action_log\",\"receipts\"],\"to_seq\":4096},\"effective_from_ms\":1750000000000,\"effective_to_ms\":1750086400000,\"governed_subject\":{\"deployment_id\":\"dep-vector\",\"platform\":\"replit\",\"workspace_id\":\"ws-vector\"},\"schema\":\"synoi.perimeter.v1\"},\"created_at_ms\":1750000000000,\"created_by\":\"actor:gateway\",\"gap_version\":\"1.0\",\"tenant_id\":\"tenant:vector\",\"type\":\"gap:perimeter_declaration\"}",
+          "signatures": [
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ed25519",
+              "sig": "YCyf52RHub1zN2PDvqOixqFvUoQRdMCC9GlbCaRNJIUN1cNVsq75DzhMHhugnf6cI7qn121KoZnwaLpe/a2RDA=="
+            },
+            {
+              "keyid": "perimeter-vector-key",
+              "alg": "ml-dsa-65",
+              "sig": "F4sw3fLQXxZyPa0kqYwlL1QOPD0JeL4VFk8WISx6Pcoi2ZXlTQgSD3Lk1G+z5gAr4H9xaxlbUe36QZcNI/O453dALTJmQWrBh6vRl2vjjeMkq8s01E8KaMwYotzwIwwGaogEDkKwQ+ZJjftkx+ZmzUJXpUqPS737KGqGkHYQ99mzDEQFZYYMFNeUJSBJVtDd6JMP1fZjL3qlWJ2bjdL2I3L5z4x1BtC+D4AWvtmGUF87qaRr8/QQGZuy+2QYJItt5YdkBybEpFdjld1Z5asM1Qp+hEZ4ZYQLOE00wad2OFKoBa4cGvYWd5MZlGqWH/HDnDqOEgqgP0zLDXfKBP9ebjN0qWczZlW0dDAt7kUpGZTVxAThxeYoVstBdwSU41d46Rej9hoTsuoeNgpSjgx43wz8NWwgRfruXoOt/zQC5L8/PrXSZKBqHy5SXGI6s4/Y3+35EmDuOSjI1zeFzC+8y7gnFRlcQHqjlkQpiVCRbp8uQ1ePDMhKJ+2/Je4cgnN0k9DSEUNMFqEVBDhY059wL2a3SEikylCcZwvnslOeMA7x167UrWJJv4VJ9iDind5UHE/f46M9/KXArn6dcc7bWU7jWq4hHnhIshsWnNL5uahx9fxD5Dnhj8Ly+ZYtPulO1Q69tqVz5YOpKlQMOPPkKBRAfUGsqozoQgsSrpXKYbS5ZyLICGHuMtUR+1eG5ouDThW6gnTts6Puq8xVCdmhBaJTyW2cC76NpcnfA6ld+TmTrS4NKVN82ySKGB9y6FI9tp3I1g1zd2JmnrZRcIaVBTe3QTHFkDyHfPJrsRhLGqAwV0++ZxQ7XX/iFLK2m5ouYTG/f1J9AUJuvGQHusFuf++BqSDnJ25S4sHb8C5XKSEgUtmVmur4YHuxZqsksVRbbWV1O0w3kea5a+dlrqXvYHgBWb8RqXfoVFEIxnSjxF/bRGasLhn85y2nBl+KD79lEeg/JqGxFMqhdMi+REkSXCh1JBUup2Dmav4irtjNFsCQmyGONRbsL2mSYHu1GcAagOgilPFXQZrA/bqMptOWqGQR17t2FVsvaD8fdQgx6wPIXmGvKNA+j3lm0lJX67qEjBlhdd54/AnjEMoXtrNj31SoKqU1NKzXfgt/oRPfzirElwPYbqUsn9JPe7/x82PiZe4KcZb1eE/bWgd1rsMMXggi3XdcLxb7v4s2yVufGx4VKOr/4nUgCS83APCZDKaCWKIS/L6YdIKL96c56UEKBKG8mPA2vTG2H3tO1+HEQ4Zn9rN6JGbSdIEB5mjR3g8bQAxJc4AoPe+YYkWBqkivsuBGZvsuOVajpb4a5qqs9xFHDYdEG8PJanrBZBqBAZJfXiSrP1W5GNKcqmdknwNB5cmT10yxscEtAr4+AlvfK3wL+wILLwZ4NKSjyhM4WObrKAD4dy67YCwIcUNaf6M9dOHstsMUWOl/C2/fq8dfp/jeA13Jv6ua/4PeOA+mrnsLis2IhM7h+lNIQzf9prp+HXyGg/mTzfM5RLYtAnXYw0mPsa+Mlwqg+XnaLfgAHqg+Yc7f+mFiVRKTN41rCMPpuGj2n9nf/+eAfaWAIw9rB9HAU/s4xzm7W0zmOR51VLnd0YdAz92GEqHhSJBkfRlbdlxwhpb8gG76BFllfp0BZb85o/DqVURuMNzHL1Ulg5cNfySbYgCFOxrQ//lFTz5c+GxVYSsyRpW7nE4BjCGJJHp60x/Z/cQyHRopJY8sY0BaPHmPE1WqkTWUSBshkEU3PjQ7Ct2pgQWctZMza9ZKqRGCW4EjrmWfOKysX67UYboVdV+uiJAzJ0cn/lvFs3SxLccmEV3W2FUsNyEqk8YYPV2dpwxX169pYb1KfMGpwPhHYjY2ZC/KlJVh+mUZ+YiFyBf6bU/0aSo9qOAAwPXrGV6lK0JJTlSSc0CmgqcDEEiAjPN+TMWdYCb9GIKSQ2AtQBkQo8TlMbUi8UB+oOROVqgqzcBRc9s1WV0+ztCOkuoqpjVL8O9dWHaBMCWir/veR8eIfzpv0ppP21Ffw+hNVzrPi9vxvDGEh8WhQPVR8Hbyko0hi/3CYruMIH07A+bVA5GhjGA+Jg/soRNLWwEgXK6bEjcpd1wzenybUCfNCP//PBEIW6/BmTiabErd64sRwjKghSyLgntuiPUnMWqGmuNoE5eh1JxnzGa/5+7C4T7+re8cEgSaUBtJ5ZNHrSeGgatuJFmtuRqlZlPr2I+pa764RGF0eab4abHSZRgwgnuw33VZ6YYSwsR7g3y/9UsH9IcZUA7Ryk4hn+pgiTIReujc0YdqcKJY1af8q219fESIulp5ByeN/XjcWSG+XWZCWkW+DhHKJpJYGZBR7kVXh8+NH5o+Z6Gf8s1KP6WfyKfJQUQofzqQPJK9gbWAHV/YLBAsSX1IUnfiL3K/gE3ZS1WOAJHcuPxUm1Hi32FAXhEqX20LOdHJS6WCfVa+gmuQwUrrz703tvtN7osvRcV5/xve2u7kHv5JKfNuMVObh+6bxz94PVx1lghiIFxvNT+U6TXEqS7L+nlEr7FBtxCHNIdZggMDe32lnyRmxFMsEujp/bqs/WM2EGbYE3puR2+l8E5ZHB1YDYH9vaNzHobZ5xqTcbOxjJCX7Dlr6u7yQMWVBvi3hctJccIu7u4AhHa4ti2CC9bhQ0Mviw8izK/PqYUB8mPtEn4XQEMER3vER1WkUL1OCjSCXbQ1zWVWKY0I4WrtnV+l2b1dP9JKhpvJ4E5i1595ryRpTNgwRVZMkq9G7HOvWkCAkzQ4DzGRc4fI4wD7f/TG3h4ZeUmw90RRlhSbVMwlxFH3MyIY0+c+zcvmD2z5drb8afi4EPIO0QDV3pHSWYgH1G0aAj1hu7SoOnhjJfeHN2Cwy2wWgD7/0YMJT6A2itvcv+0YzhDASE/sORtOEehdWlT7fIvjcMCHTAl2zNEQmSMethZ88wNNtSHrLSbbymo5S1bD3FA93qpVHHyxRZiCe5VDC3ztdeR5/PTEn7PY76qg9zOMfP+MUeVI2byZirPD+HQAMyHvRcfufvWTUj/CWnBT0MF/4k3XYistDP3vlKWAqYg7DeMMgP/AqgqtufCYmGeKnSerlQRb2O6RjoddIq+Za+lXmQbKD1BPChKPJ2GGgxafF7Dma6SAknM8nSDPwUol8xhAll7IJFe/+a3of/rJIzxJql34/i0RvThwrPHEeWbwBDiQnNcpNHY8jfY5U/6H2CeLyQ40AwfvE/MBEutD/DGKK3MD8RdJ1sYcK/Zp34Z551eY0iKdTyGc8nFncE4dxujy846gV+vfylqwX/YqOJ/7fTkeTstojCfvjmrKz3M2jjmUprusADgiHZOuzwXBHmlwPDDio17eYGfBfRfYCp+K2YDu5WxjhWh5oAGoWfgUEL7syC0jH5S/Yu5N1d4PYknKF/SBPvM6mNab4vc/InW8WE844JZpBCczqKmX6p40SZ9WRPUmB2OokJbqgCXpc1Fv0wUStrs+ur4uWuB1zVwOQfarC6Qgk2KidUkcACrddU5V976VhUG9NEsRapI5M4ffWI2E7yv1BEooVVEvXABLOl4PfX9lvA9MeUURzKxVOht0oyMlqi1vRlgpv5uivUQJnKAiEV+iLaEjQRZmRjA2ZNV/TmuK2y5dJp4L3nr8/1JcfkKGDi6u0mcb2lkwdhYbaOUZTYRUb2FmaeWY0KrNCL4uRZkpc6SZuzK1UqiSCJjoW+/MK5kKz+/58qM3e0F8XlUAa36NvG9xDSTPsMTayGZi8jB+BxxbVbnu+j5eZqvXSgDlGNF9JsEAB6RG2bgEsLQRB5iw62Qg9rxNU36wpF5wE/mnQlY0unckIsn9KZgyMuaN4iP52TLRn1cBVlzkJDRSBIzdsaLqO5L8gU/XG/upDmujEYp3/0Z9k05/LvRZHk1p/eTLLNXm0dhg1od6tQwGucLYZwLTREyLTjKnjcF3ICn0q/jixLFLt8K1kJow2gXFCFMe/EK1OwJ6mAkQv6lnuFR+Jqtmjf7Pwl9/ODu+YMTRNgg0bzzHmW0CxpCKos3ROx463de3JpvUwSaPD0fj62mBH8dIAzBpaxjANfQfyOZqOiVL6BUecJPiK5jifIctkG92rNDtyJja8LVo4ySAq1QRNsWmr0r8E+fLQqDVF929W4cWvpW3AyocFnR8/Ukx7CDt+a3iQTTB5uPbYw/sK6QOHbgrBkVh4MZCigg+gZm/lxfsmiXl+1tp6JhSMZ0FGsuxONh53oAdXa+FCL4aX6lPOxbM6thwt7QD/U61gylZomxZpRUakDPrK0Q3lorvapPUyu6xOPy+retDdF+Wefvsbt6cLB1a1oK2ObycbRgSHSVtieMuPIa1Oo2pu/YIGSRPo6i22QghisxOX5jR8wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgoPFxsg"
+            }
+          ]
+        }
+      },
+      "expected": {
+        "validates": true,
+        "oid_matches_canonical": false,
+        "verifies_under_perimeter_type": false,
+        "note": "Dropping a blind spot is the highest-value tamper against this object: it silently widens the coverage claim. The canonical bytes change, so both the OID and the attestation payload binding break."
+      }
+    }
+  ]
+}
