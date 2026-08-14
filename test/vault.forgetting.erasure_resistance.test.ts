@@ -26,17 +26,17 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { openDatabase } from '../../synoi-vault/src/storage/edge-store.js'
+import { openDatabase } from '../../../synoi-systems/synoi-vault/src/storage/edge-store.js'
 import {
   checkHitRateCapDB,
   prunable,
   __resetHitRateBuckets,
-} from '../../synoi-vault/src/storage/forgetting.js'
-import { FieldType, FieldPolicyType, BioLevel } from '../../synoi-vault/src/types/index.js'
-import { buildCDRO } from '../../synoi-vault/src/core/cdro.js'
-import { deriveOID, toOIDHex } from '../../synoi-vault/src/core/oid.js'
-import { canonicalize, filterCanonicalFields } from '../../synoi-vault/src/core/canonicalize.js'
-import { serializeCanonicalValues } from '../../synoi-vault/src/storage/canonical-values.js'
+} from '../../../synoi-systems/synoi-vault/src/storage/forgetting.js'
+import { FieldType, FieldPolicyType, BioLevel } from '../../../synoi-systems/synoi-vault/src/types/index.js'
+import { buildCDRO } from '../../../synoi-systems/synoi-vault/src/core/cdro.js'
+import { deriveOID, toOIDHex } from '../../../synoi-systems/synoi-vault/src/core/oid.js'
+import { canonicalize, filterCanonicalFields } from '../../../synoi-systems/synoi-vault/src/core/canonicalize.js'
+import { serializeCanonicalValues } from '../../../synoi-systems/synoi-vault/src/storage/canonical-values.js'
 
 // ─── Test harness ─────────────────────────────────────────────────────────────
 
