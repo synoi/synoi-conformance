@@ -143,5 +143,61 @@
       }
     },
     "expected_oid": "sha256:a62400c04791c83e59058a3570e67ac8fd47d368dd1fd17484762a3082a4bd40"
+  },
+  {
+    "name": "perimeter_declaration small",
+    "kind": "oid",
+    "input": {
+      "type": "gap:perimeter_declaration",
+      "tenant_id": "t1",
+      "created_at_ms": 1700000000000,
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_oid": "sha256:7658a25767347a1c1face3f5feae28a48b8721e96ea2f3e137f4501e6c7c04bb"
   }
 ]

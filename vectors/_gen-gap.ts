@@ -18,6 +18,7 @@ import {
   validateWorkflowDefinition,
   validateGapDecisionReceipt,
   validateRevocationEvent,
+  validatePerimeterDeclaration,
 } from '@synoi/gap'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -136,6 +137,49 @@ const goodRevocation = {
   },
 }
 
+// Perimeter declaration (`synoi.perimeter.v1`). The signed scope statement a
+// completeness assertion is complete WITHIN. The enforcement-ceiling rule is
+// the one content-integrity rule this object carries: a chokepoint may claim
+// WEAKER enforcement than its class allows, never stronger, so "C7 with
+// structural enforcement" is not a debatable characterization but a false
+// statement about the mechanism, and any conformant implementation must
+// reject it.
+const goodPerimeter = {
+  oid:           'sha256:0000000000000000000000000000000000000000000000000000000000000007',
+  type:          'gap:perimeter_declaration',
+  gap_version:   '1.0',
+  tenant_id:     't-1',
+  created_at_ms: 1700000000000,
+  created_by:    'actor:gateway',
+  body: {
+    schema: 'synoi.perimeter.v1',
+    governed_subject: {
+      platform:      'replit',
+      workspace_id:  'ws-1',
+      deployment_id: 'dep-9',
+    },
+    chokepoints_active: [
+      { class: 'C1', surface: 'gateway:brokered-credential:stripe', enforcement: 'structural' },
+      { class: 'C5', surface: 'mcp:https://gw.example/mcp/proxy',   enforcement: 'structural' },
+      { class: 'C7', surface: 'github:webhook',                     enforcement: 'observational' },
+    ],
+    blind_spots: [
+      {
+        surface:           'replit:agent-shell',
+        reason:            'The workspace shell tab runs commands with no pre-execution hook a third party can register.',
+        class_unavailable: 'C4',
+      },
+      {
+        surface:           'replit:static-deployment',
+        reason:            'A static deployment has no env vars and no run command, so no credential can be brokered.',
+        class_unavailable: 'C1',
+      },
+    ],
+    completeness_scope: { populations: ['action_log', 'receipts'], from_seq: 1, to_seq: 4096 },
+    effective_from_ms:  1700000000000,
+  },
+}
+
 interface ValidateVector {
   name:                     string
   kind:                     'validate'
@@ -181,6 +225,24 @@ const validateVectors: ValidateVector[] = [
   { name: 'revocation: bad target_kind',                 kind: 'validate', target: 'revocation_event',         input: { ...goodRevocation, body: { ...goodRevocation.body, target_kind: 'nonsense' } }, expected_ok: false },
   { name: 'revocation: missing reason',                  kind: 'validate', target: 'revocation_event',         input: { ...goodRevocation, body: { ...goodRevocation.body, reason: undefined } }, expected_ok: false },
   { name: 'revocation: tolerates extra key',             kind: 'validate', target: 'revocation_event',         input: { ...goodRevocation, body: { ...goodRevocation.body, attestation_url: 'https://x' } }, expected_ok: true },
+
+  // PerimeterDeclaration (`synoi.perimeter.v1`)
+  { name: 'perimeter: well-formed',                      kind: 'validate', target: 'perimeter_declaration',    input: goodPerimeter,                                             expected_ok: true },
+  { name: 'perimeter: wrong schema constant',            kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, schema: 'synoi.perimeter.v2' } }, expected_ok: false },
+  { name: 'perimeter: missing governed_subject',         kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, governed_subject: undefined } }, expected_ok: false },
+  { name: 'perimeter: missing blind_spots',              kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, blind_spots: undefined } }, expected_ok: false },
+  { name: 'perimeter: empty lists are legal',            kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, chokepoints_active: [], blind_spots: [] } }, expected_ok: true },
+  { name: 'perimeter: unknown chokepoint class',         kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, chokepoints_active: [{ class: 'C9', surface: 's', enforcement: 'structural' }] } }, expected_ok: false },
+  { name: 'perimeter: C7 claiming structural',           kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, chokepoints_active: [{ class: 'C7', surface: 'github:webhook', enforcement: 'structural' }] } }, expected_ok: false, expected_errors_include: ['exceeds the ceiling for C7'] },
+  { name: 'perimeter: C6 claiming structural',           kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, chokepoints_active: [{ class: 'C6', surface: 'sdk:wrapper', enforcement: 'structural' }] } }, expected_ok: false },
+  { name: 'perimeter: a class may claim weaker',         kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, chokepoints_active: [{ class: 'C1', surface: 'gateway:cred', enforcement: 'cooperative' }] } }, expected_ok: true },
+  { name: 'perimeter: blind spot with empty reason',     kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, blind_spots: [{ surface: 's', reason: '', class_unavailable: 'C4' }] } }, expected_ok: false },
+  { name: 'perimeter: non-OID evidence_ref',             kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, chokepoints_active: [{ class: 'C1', surface: 's', enforcement: 'structural', evidence_ref: 'not-an-oid' }] } }, expected_ok: false },
+  { name: 'perimeter: non-OID prev',                     kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, prev: 'sha256:short' } }, expected_ok: false },
+  { name: 'perimeter: inverted effective window',        kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, effective_from_ms: 2000, effective_to_ms: 1000 } }, expected_ok: false },
+  { name: 'perimeter: from_seq greater than to_seq',     kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, completeness_scope: { populations: ['action_log'], from_seq: 90, to_seq: 10 } } }, expected_ok: false },
+  { name: 'perimeter: wrong envelope type',              kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, type: 'gap:decision_receipt' },        expected_ok: false },
+  { name: 'perimeter: tolerates extra unknown body key', kind: 'validate', target: 'perimeter_declaration',    input: { ...goodPerimeter, body: { ...goodPerimeter.body, operator_note: 'reviewed' } }, expected_ok: true },
 ]
 
 writeFileSync(join(gapDir, 'validate.json'), JSON.stringify(validateVectors, null, 2) + '\n')
@@ -193,6 +255,7 @@ const validatorMap: Record<string, (x: unknown) => { ok: boolean; errors: string
   workflow_definition:    validateWorkflowDefinition,
   decision_receipt:       validateGapDecisionReceipt,
   revocation_event:       validateRevocationEvent,
+  perimeter_declaration:  validatePerimeterDeclaration,
 }
 for (const v of validateVectors) {
   const fn = validatorMap[v.target]
@@ -220,6 +283,7 @@ const oidInputs: Array<{ name: string; payload: { type: string; tenant_id: strin
   { name: 'workflow_definition small',     payload: { type: 'gap:workflow_definition',    tenant_id: 't1', created_at_ms: 1700000000000, body: goodWorkflowDef.body } },
   { name: 'decision_receipt small',        payload: { type: 'gap:decision_receipt',       tenant_id: 't1', created_at_ms: 1700000000000, body: goodReceipt.body } },
   { name: 'revocation_event small',        payload: { type: 'gap:revocation_event',       tenant_id: 't1', created_at_ms: 1700000000000, body: goodRevocation.body } },
+  { name: 'perimeter_declaration small',   payload: { type: 'gap:perimeter_declaration',  tenant_id: 't1', created_at_ms: 1700000000000, body: goodPerimeter.body } },
 ]
 
 const oidVectors: OidVector[] = oidInputs.map(v => ({

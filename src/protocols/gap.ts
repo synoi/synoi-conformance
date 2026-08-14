@@ -22,6 +22,7 @@ const VALIDATOR_MAP: Record<string, string> = {
   workflow_instance:      'validateWorkflowInstance',
   decision_receipt:       'validateGapDecisionReceipt',
   revocation_event:       'validateRevocationEvent',
+  perimeter_declaration:  'validatePerimeterDeclaration',
 }
 
 export async function runGapVectors(implPath: string, vectors: Vector[]): Promise<VectorResult[]> {
