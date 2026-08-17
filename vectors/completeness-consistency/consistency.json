@@ -1,0 +1,237 @@
+{
+  "kind": "completeness_consistency_v1",
+  "description": "RFC 6962 section 2.1.2 consistency proofs for the completeness receipt tree (build1-completeness-witnessing, P5). A consistency proof between tree sizes m < n proves tree(m) is a leaf-prefix of tree(n): the first m leaves are unchanged, unreordered, unremoved, and growth was append-only at the tail. Verification is the RFC 9162 section 2.1.4.2 iterative algorithm. Two independent anchors: (1) the canonical RFC 6962 reference 8-leaf tree with raw-byte leaves and its published roots and proofs, proving byte-for-byte agreement with sigstore Rekor / Trillian; (2) SynOI completeness cases whose leaves follow ADR_023 D1 (leafHash of the 64-char hex OID STRING), covering a valid append-only extension (accept) and rewritten/reordered/mutated/truncated histories (reject). All hashes are bare lowercase hex. A reimplementation in any language reproduces every value from the ordered inputs alone. HONESTY BOUNDARY: a consistency proof establishes ONLY the append-only structural relation between two roots; it does not prove the leaves are complete or honest, does not catch back-dating into the still-unwitnessed tail (indices m..n), and does not anchor either root to a public log.",
+  "constants": {
+    "algorithm": "RFC6962-SHA256",
+    "leaf_raw_bytes": "RFC KAT block: leafHash(data) = SHA-256(0x00 || data) over raw bytes",
+    "leaf_hex_string": "SynOI block: leafHash(oid_hex) = SHA-256(0x00 || utf8(oid_hex_64)) per ADR_023 D1 (leaf hashes the hex STRING, not the raw 32 digest bytes)",
+    "internal_node": "internalHash(l,r) = SHA-256(0x01 || l || r)",
+    "proof_wire_form": "ordered array of 64-hex node hashes, NO L/R tags; structure derived from (m,n) arithmetic at verify time (RFC 6962 wire form, Rekor/Trillian compatible)",
+    "verify_algorithm": "RFC 9162 section 2.1.4.2 VerifyConsistency; m===0 -> empty proof accepts; 0<m<n -> non-empty proof required; when m is a power of two the prior root is omitted and verification seeds from the supplied prior root; both prior and current roots must reconstruct exactly and no proof nodes may be left unconsumed"
+  },
+  "rfc6962_reference": {
+    "note": "Canonical CT reference 8-leaf tree. Leaves are RAW bytes (0x00 prefix). Roots and proofs are the published RFC 6962 reference values; consistency(4,8) exercises the m = power-of-two case (proof omits the prior root).",
+    "leaf_inputs_hex": [
+      "",
+      "00",
+      "10",
+      "2021",
+      "3031",
+      "40414243",
+      "5051525354555657",
+      "606162636465666768696a6b6c6d6e6f"
+    ],
+    "roots": {
+      "1": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+      "2": "fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125",
+      "3": "aeb6bcfe274b70a14fb067a5e5578264db0fa9b51af5e0ba159158f329e06e77",
+      "4": "d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7",
+      "5": "4e3bbb1f7b478dcfe71fb631631519a3bca12c9aefca1612bfce4c13a86264d4",
+      "6": "76e67dadbcdf1e10e1b74ddc608abd2f98dfb16fbce75277b5232a127f2087ef",
+      "7": "ddb89be403809e325750d3d263cd78929c2942b7942a34b77e122c9594a74c8c",
+      "8": "5dc9da79a70659a9ad559cb701ded9a2ab9d823aad2f4960cfe370eff4604328"
+    },
+    "proofs": [
+      {
+        "m": 1,
+        "n": 1,
+        "proof": [],
+        "verify": true
+      },
+      {
+        "m": 1,
+        "n": 8,
+        "proof": [
+          "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
+          "5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e",
+          "6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4"
+        ],
+        "verify": true
+      },
+      {
+        "m": 6,
+        "n": 8,
+        "proof": [
+          "0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a",
+          "ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0",
+          "d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7"
+        ],
+        "verify": true
+      },
+      {
+        "m": 2,
+        "n": 5,
+        "proof": [
+          "5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e",
+          "bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b"
+        ],
+        "verify": true
+      },
+      {
+        "m": 4,
+        "n": 8,
+        "proof": [
+          "6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4"
+        ],
+        "verify": true
+      },
+      {
+        "m": 3,
+        "n": 7,
+        "proof": [
+          "0298d122906dcfc10892cb53a73992fc5b9f493ea4c9badb27b791b4127a7fe7",
+          "07506a85fd9dd2f120eb694f86011e5bb4662e5c415a62917033d4a9624487e7",
+          "fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125",
+          "837dbb152e9b079010717e84e865da4ebc0fa198a806d59d31bf15accef22d0e"
+        ],
+        "verify": true
+      }
+    ]
+  },
+  "synoi_completeness": {
+    "note": "Leaves are leafHash(utf8(oid_hex)) per ADR_023 D1, matching the completeness spine. verify is checked against the HONEST prior_root_sha256 (computed over prior_ordered_oids). For reject cases the proof is generated over the rewritten current tree and MUST NOT verify against the honest prior root.",
+    "cases": [
+      {
+        "name": "valid_extension",
+        "note": "Current list is the prior list plus two APPENDED leaves. The first m leaves are byte-identical, so the consistency proof verifies against the honest prior root. current_prefix_root_sha256 == prior_root_sha256.",
+        "prior_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "3333333333333333333333333333333333333333333333333333333333333333"
+        ],
+        "current_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "3333333333333333333333333333333333333333333333333333333333333333",
+          "4444444444444444444444444444444444444444444444444444444444444444",
+          "5555555555555555555555555555555555555555555555555555555555555555"
+        ],
+        "prior_tree_size": 3,
+        "expected": {
+          "prior_root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+          "current_root_sha256": "e0a94cb636ca8cde10af3ecca8f38bc3af243603eebcec8c7d515332bc1e1fb3",
+          "consistency_proof": [
+            "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c",
+            "e2d7c20dbb2d717a5ec5ab19c0eb2ad3ef3d1093e7863cae1a24ef2efffa4afc",
+            "b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb",
+            "7c6bc9dd7bd22e6a52714259efca3c4da49f927b44628236a74c07ef7d6b25f1"
+          ],
+          "current_prefix_root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+          "verify": true
+        }
+      },
+      {
+        "name": "valid_extension_pow2_prior",
+        "note": "Prior size is a power of two (m=4): the consistency proof OMITS the prior root; verification seeds from the supplied prior root. Still accepts.",
+        "prior_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "3333333333333333333333333333333333333333333333333333333333333333",
+          "4444444444444444444444444444444444444444444444444444444444444444"
+        ],
+        "current_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "3333333333333333333333333333333333333333333333333333333333333333",
+          "4444444444444444444444444444444444444444444444444444444444444444",
+          "5555555555555555555555555555555555555555555555555555555555555555",
+          "6666666666666666666666666666666666666666666666666666666666666666",
+          "7777777777777777777777777777777777777777777777777777777777777777"
+        ],
+        "prior_tree_size": 4,
+        "expected": {
+          "prior_root_sha256": "4a1c9c4d040f83cf65c91313b8b3d7016596fee569a03074fba0fcee3fd7df0e",
+          "current_root_sha256": "8609755670cfd207a125c43ee4a661c2442a96666733d29e0bd186d56ce49a76",
+          "consistency_proof": [
+            "998ac1cf1246978e2cc92878cc6f18994c34052ab62d6da3e2bd5bb601d6f2b7"
+          ],
+          "current_prefix_root_sha256": "4a1c9c4d040f83cf65c91313b8b3d7016596fee569a03074fba0fcee3fd7df0e",
+          "verify": true
+        }
+      },
+      {
+        "name": "reordered_prefix_reject",
+        "note": "Current list swaps leaves 0 and 2 of the frozen prefix, then appends. The first m leaves differ from the prior tree, so no consistency proof to the honest prior root exists; the proof generated over the rewritten tree does NOT verify. current_prefix_root_sha256 != prior_root_sha256.",
+        "prior_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "3333333333333333333333333333333333333333333333333333333333333333"
+        ],
+        "current_ordered_oids": [
+          "3333333333333333333333333333333333333333333333333333333333333333",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "4444444444444444444444444444444444444444444444444444444444444444",
+          "5555555555555555555555555555555555555555555555555555555555555555"
+        ],
+        "prior_tree_size": 3,
+        "expected": {
+          "prior_root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+          "current_root_sha256": "e7397532a23c28d51cb2cfae3e9b20526338ce8635345ecbbdac2c5be597b443",
+          "consistency_proof": [
+            "190702c1e77a473b1e567064755d5594b553d1ffa2661b24ccb1e858ec1dae9f",
+            "e2d7c20dbb2d717a5ec5ab19c0eb2ad3ef3d1093e7863cae1a24ef2efffa4afc",
+            "f62db4f4e32752ec0e44b0ea1523e7a1456bb41add4c5abb71b7861ee2111882",
+            "7c6bc9dd7bd22e6a52714259efca3c4da49f927b44628236a74c07ef7d6b25f1"
+          ],
+          "current_prefix_root_sha256": "c1712da9eea68e3a943d721ae40f3804d2f3dafe6b7c8c2c95fa894ec0b161b3",
+          "verify": false
+        }
+      },
+      {
+        "name": "mutated_prefix_reject",
+        "note": "Current list replaces the middle leaf of the frozen prefix (back-dated/tampered), then appends. The proof does NOT verify against the honest prior root.",
+        "prior_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "3333333333333333333333333333333333333333333333333333333333333333"
+        ],
+        "current_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "9999999999999999999999999999999999999999999999999999999999999999",
+          "3333333333333333333333333333333333333333333333333333333333333333",
+          "4444444444444444444444444444444444444444444444444444444444444444"
+        ],
+        "prior_tree_size": 3,
+        "expected": {
+          "prior_root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+          "current_root_sha256": "543c05d467142ca8f885055dfebf9237142b96cec2455b093f3757ecdb7d13d9",
+          "consistency_proof": [
+            "c708bec7136cc22a02eb39242b13bdc8447f1a0bff558553f8b878893605ca4c",
+            "e2d7c20dbb2d717a5ec5ab19c0eb2ad3ef3d1093e7863cae1a24ef2efffa4afc",
+            "f0d74d2a898033f36e3bc55e18b327fcc3a0571719c0f1f62f8fe1416680f76e"
+          ],
+          "current_prefix_root_sha256": "2eb61a350c044bff1322d7a3ea1ef5500179789583e2629927bde58b968d46d9",
+          "verify": false
+        }
+      },
+      {
+        "name": "dropped_prefix_reject",
+        "note": "Current list drops a leaf from the frozen prefix (front truncation) and appends. Claimed prior size m no longer has a matching honest prefix; rejects.",
+        "prior_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "3333333333333333333333333333333333333333333333333333333333333333"
+        ],
+        "current_ordered_oids": [
+          "1111111111111111111111111111111111111111111111111111111111111111",
+          "2222222222222222222222222222222222222222222222222222222222222222",
+          "4444444444444444444444444444444444444444444444444444444444444444",
+          "5555555555555555555555555555555555555555555555555555555555555555"
+        ],
+        "prior_tree_size": 3,
+        "expected": {
+          "prior_root_sha256": "5cbb0c2c0a6ab62d6029f44efcbd8ecf1649e0f31405ce87cc15c4653b441b38",
+          "current_root_sha256": "b44178724c7117a524de9a204ef1576d8428c076e30271adf62b04b240e8f550",
+          "consistency_proof": [
+            "e2d7c20dbb2d717a5ec5ab19c0eb2ad3ef3d1093e7863cae1a24ef2efffa4afc",
+            "7c6bc9dd7bd22e6a52714259efca3c4da49f927b44628236a74c07ef7d6b25f1",
+            "b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb"
+          ],
+          "current_prefix_root_sha256": "e73711acccecf721289d71e7f10faa4123261ce275c7f0c40b13c2b60148ce0e",
+          "verify": false
+        }
+      }
+    ]
+  }
+}

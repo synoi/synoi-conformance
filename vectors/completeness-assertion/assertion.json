@@ -1,0 +1,130 @@
+{
+  "kind": "completeness_assertion_v1",
+  "description": "Signed synoi.completeness.v1 assertion (build1-completeness-witnessing, P4). Governed-path scope only: certifies in-scope governed-path completeness, never universal completeness. The signed body is the frozen field set canonicalized via RFC 8785 JCS (@synoi/sraid canonicalize); assertion_id = sha256(canonical body); assertion_id and attestation are EXCLUDED from the signed bytes. The hybrid Ed25519 + ML-DSA-65 DSSE envelope binds payloadType (ADR_023 D3; SRAID F7/A4). A reimplementation reproduces canonical_payload and assertion_id from body alone, and verifies the envelope with @synoi/sraid verifyAttestation.",
+  "constants": {
+    "schema": "synoi.completeness.v1",
+    "payload_type": "application/vnd.synoi.completeness+json",
+    "assertion_id_rule": "assertion_id = SHA-256(canonicalize(body)); bare lowercase hex; EXCLUDED from signed bytes",
+    "canonicalization": "RFC 8785 JCS over the frozen body field set; object keys re-sorted lexicographically",
+    "hybrid_rule": "attestation carries BOTH ed25519 AND ml-dsa-65 over PAE(payloadType, canonical); both required"
+  },
+  "cases": [
+    {
+      "name": "signed_assertion_verifies",
+      "body": {
+        "schema": "synoi.completeness.v1",
+        "tenant_id": "tenant:vector-home",
+        "from_ms": 1750000000000,
+        "to_ms": 1750086400000,
+        "generated_at": 1750086400500,
+        "population_total": 3,
+        "receipted_total": 2,
+        "sources": {
+          "action_log": 3,
+          "human_approvals": 0,
+          "hitl_requests": 0,
+          "receipts_in_window": 2
+        },
+        "unreceipted": 1,
+        "faults": 0,
+        "degraded": 0,
+        "clean": false,
+        "receipt_tree": {
+          "algorithm": "RFC6962-SHA256",
+          "size": 2,
+          "root_sha256": "b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb"
+        },
+        "chain": {
+          "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+          "head_hash": "b1b5131b75d1ecb2c6ef3ce40a5739e8bc5f4deb9262625b21371ae858eee38f"
+        },
+        "exceptions": [
+          {
+            "kind": "unreceipted_action",
+            "severity": "unreceipted",
+            "receipt_id": "orphan-a3",
+            "detail": {
+              "source": "action_log"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "canonical_payload": "{\"chain\":{\"genesis_hash\":\"9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c\",\"head_hash\":\"b1b5131b75d1ecb2c6ef3ce40a5739e8bc5f4deb9262625b21371ae858eee38f\"},\"clean\":false,\"degraded\":0,\"exceptions\":[{\"detail\":{\"source\":\"action_log\"},\"kind\":\"unreceipted_action\",\"receipt_id\":\"orphan-a3\",\"severity\":\"unreceipted\"}],\"faults\":0,\"from_ms\":1750000000000,\"generated_at\":1750086400500,\"population_total\":3,\"receipt_tree\":{\"algorithm\":\"RFC6962-SHA256\",\"root_sha256\":\"b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb\",\"size\":2},\"receipted_total\":2,\"schema\":\"synoi.completeness.v1\",\"sources\":{\"action_log\":3,\"hitl_requests\":0,\"human_approvals\":0,\"receipts_in_window\":2},\"tenant_id\":\"tenant:vector-home\",\"to_ms\":1750086400000,\"unreceipted\":1}",
+        "assertion_id": "2cb111700e50e2f7239ec37654023b02fb533ac7640c17f70fcdb88408ad893e",
+        "payload_type": "application/vnd.synoi.completeness+json",
+        "signature_algs": [
+          "ed25519",
+          "ml-dsa-65"
+        ],
+        "verifies_under_completeness_type": true,
+        "verifies_under_gap_receipt_type": false
+      },
+      "envelope": {
+        "payloadType": "application/vnd.synoi.completeness+json",
+        "payload": "{\"chain\":{\"genesis_hash\":\"9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c\",\"head_hash\":\"b1b5131b75d1ecb2c6ef3ce40a5739e8bc5f4deb9262625b21371ae858eee38f\"},\"clean\":false,\"degraded\":0,\"exceptions\":[{\"detail\":{\"source\":\"action_log\"},\"kind\":\"unreceipted_action\",\"receipt_id\":\"orphan-a3\",\"severity\":\"unreceipted\"}],\"faults\":0,\"from_ms\":1750000000000,\"generated_at\":1750086400500,\"population_total\":3,\"receipt_tree\":{\"algorithm\":\"RFC6962-SHA256\",\"root_sha256\":\"b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb\",\"size\":2},\"receipted_total\":2,\"schema\":\"synoi.completeness.v1\",\"sources\":{\"action_log\":3,\"hitl_requests\":0,\"human_approvals\":0,\"receipts_in_window\":2},\"tenant_id\":\"tenant:vector-home\",\"to_ms\":1750086400000,\"unreceipted\":1}",
+        "signatures": [
+          {
+            "alg": "ed25519",
+            "sig": "WiGcWyHbX+F3lr/ObNfvXkmLJBsx5VIClzMoKetLbQSk6ZtJgIZ+lVhzHyGgPST1F8FiVfoEDWKuyIEO2D2aCQ==",
+            "keyid": "completeness-vector-2026"
+          },
+          {
+            "alg": "ml-dsa-65",
+            "sig": "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",
+            "keyid": "completeness-vector-2026"
+          }
+        ]
+      },
+      "ed25519_pub_b64": "kwYBak8438OLTk8cOWa5kpEZy85XyyIKkffv84wNe5Q=",
+      "ml_dsa_pub_b64": "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"
+    },
+    {
+      "name": "field_flip_changes_signed_bytes",
+      "note": "Flipping any body field (here: unreceipted 1 -> 99) changes the canonical bytes and thus assertion_id. The pinned envelope above (over the unflipped body) can never verify against the flipped body.",
+      "body": {
+        "schema": "synoi.completeness.v1",
+        "tenant_id": "tenant:vector-home",
+        "from_ms": 1750000000000,
+        "to_ms": 1750086400000,
+        "generated_at": 1750086400500,
+        "population_total": 3,
+        "receipted_total": 2,
+        "sources": {
+          "action_log": 3,
+          "human_approvals": 0,
+          "hitl_requests": 0,
+          "receipts_in_window": 2
+        },
+        "unreceipted": 99,
+        "faults": 0,
+        "degraded": 0,
+        "clean": false,
+        "receipt_tree": {
+          "algorithm": "RFC6962-SHA256",
+          "size": 2,
+          "root_sha256": "b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb"
+        },
+        "chain": {
+          "genesis_hash": "9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c",
+          "head_hash": "b1b5131b75d1ecb2c6ef3ce40a5739e8bc5f4deb9262625b21371ae858eee38f"
+        },
+        "exceptions": [
+          {
+            "kind": "unreceipted_action",
+            "severity": "unreceipted",
+            "receipt_id": "orphan-a3",
+            "detail": {
+              "source": "action_log"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "canonical_payload": "{\"chain\":{\"genesis_hash\":\"9e658a48e9ce87a329481779f47b7aebd6f2d9a1433647842ff94518f290e39c\",\"head_hash\":\"b1b5131b75d1ecb2c6ef3ce40a5739e8bc5f4deb9262625b21371ae858eee38f\"},\"clean\":false,\"degraded\":0,\"exceptions\":[{\"detail\":{\"source\":\"action_log\"},\"kind\":\"unreceipted_action\",\"receipt_id\":\"orphan-a3\",\"severity\":\"unreceipted\"}],\"faults\":0,\"from_ms\":1750000000000,\"generated_at\":1750086400500,\"population_total\":3,\"receipt_tree\":{\"algorithm\":\"RFC6962-SHA256\",\"root_sha256\":\"b03764789a5256267a2a78f60bf1b4f549ef812f7d5a4831dd9bee2d0ac37dfb\",\"size\":2},\"receipted_total\":2,\"schema\":\"synoi.completeness.v1\",\"sources\":{\"action_log\":3,\"hitl_requests\":0,\"human_approvals\":0,\"receipts_in_window\":2},\"tenant_id\":\"tenant:vector-home\",\"to_ms\":1750086400000,\"unreceipted\":99}",
+        "assertion_id": "a657700908f99b6dc5ce5ccf8ea84aeff4a096dacee5de00bd169f559d96c1ac",
+        "differs_from_signed_case": true
+      }
+    }
+  ]
+}
