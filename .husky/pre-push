@@ -1,0 +1,8 @@
+#!/bin/sh
+SCANNER="${SYNOI_PREPUSH_SCANNER:-../synoi-conductor/scripts/prepush-scan.mjs}"
+if [ ! -f "$SCANNER" ]; then
+  echo "pre-push: scanner not found at $SCANNER" >&2
+  echo "pre-push: set SYNOI_PREPUSH_SCANNER or check the synoi-conductor path" >&2
+  exit 1
+fi
+node "$SCANNER"

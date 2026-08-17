@@ -656,5 +656,872 @@
       }
     },
     "expected_ok": true
+  },
+  {
+    "name": "perimeter: well-formed",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "perimeter: wrong schema constant",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v2",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: missing governed_subject",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: missing blind_spots",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: empty lists are legal",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [],
+        "blind_spots": [],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "perimeter: unknown chokepoint class",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C9",
+            "surface": "s",
+            "enforcement": "structural"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: C7 claiming structural",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "structural"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false,
+    "expected_errors_include": [
+      "exceeds the ceiling for C7"
+    ]
+  },
+  {
+    "name": "perimeter: C6 claiming structural",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C6",
+            "surface": "sdk:wrapper",
+            "enforcement": "structural"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: a class may claim weaker",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:cred",
+            "enforcement": "cooperative"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": true
+  },
+  {
+    "name": "perimeter: blind spot with empty reason",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "s",
+            "reason": "",
+            "class_unavailable": "C4"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: non-OID evidence_ref",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "s",
+            "enforcement": "structural",
+            "evidence_ref": "not-an-oid"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: non-OID prev",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000,
+        "prev": "sha256:short"
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: inverted effective window",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 2000,
+        "effective_to_ms": 1000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: from_seq greater than to_seq",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log"
+          ],
+          "from_seq": 90,
+          "to_seq": 10
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: wrong envelope type",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:decision_receipt",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000
+      }
+    },
+    "expected_ok": false
+  },
+  {
+    "name": "perimeter: tolerates extra unknown body key",
+    "kind": "validate",
+    "target": "perimeter_declaration",
+    "input": {
+      "oid": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+      "type": "gap:perimeter_declaration",
+      "gap_version": "1.0",
+      "tenant_id": "t-1",
+      "created_at_ms": 1700000000000,
+      "created_by": "actor:gateway",
+      "body": {
+        "schema": "synoi.perimeter.v1",
+        "governed_subject": {
+          "platform": "replit",
+          "workspace_id": "ws-1",
+          "deployment_id": "dep-9"
+        },
+        "chokepoints_active": [
+          {
+            "class": "C1",
+            "surface": "gateway:brokered-credential:stripe",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C5",
+            "surface": "mcp:https://gw.example/mcp/proxy",
+            "enforcement": "structural"
+          },
+          {
+            "class": "C7",
+            "surface": "github:webhook",
+            "enforcement": "observational"
+          }
+        ],
+        "blind_spots": [
+          {
+            "surface": "replit:agent-shell",
+            "reason": "The workspace shell tab runs commands with no pre-execution hook a third party can register.",
+            "class_unavailable": "C4"
+          },
+          {
+            "surface": "replit:static-deployment",
+            "reason": "A static deployment has no env vars and no run command, so no credential can be brokered.",
+            "class_unavailable": "C1"
+          }
+        ],
+        "completeness_scope": {
+          "populations": [
+            "action_log",
+            "receipts"
+          ],
+          "from_seq": 1,
+          "to_seq": 4096
+        },
+        "effective_from_ms": 1700000000000,
+        "operator_note": "reviewed"
+      }
+    },
+    "expected_ok": true
   }
 ]
