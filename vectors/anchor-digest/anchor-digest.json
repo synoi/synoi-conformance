@@ -1,0 +1,86 @@
+{
+  "kind": "anchor_digest_kind_v1",
+  "description": "The preimage discriminator for receipt anchor batches. A SynOI gateway timestamps ONE of two preimages per Merkle batch: the raw 32-byte RFC 6962 root when the SynOI counter-signature was unavailable, or SHA-256 of the utf-8 counter-signed canonical bundle when it succeeded. The two values are different, so a verifier not told which one was submitted has to guess and rejects a valid OpenTimestamps proof roughly half the time. Every anchor batch therefore publishes ots.digest_kind and ots.digest_sha256. Batches written before that field existed publish digest_kind 'unknown': the timestamped preimage was never recorded, and an implementation MUST report that rather than assume either form. All hashes are bare lowercase hex, no sha256: prefix.",
+  "constants": {
+    "schema": "synoi.anchor.digest.v1",
+    "merkle_root_rule": "digest_kind 'merkle_root' -> the submitted digest is the raw 32 bytes of merkle_root itself. digest_sha256 === merkle_root.",
+    "countersign_rule": "digest_kind 'countersign_bundle_sha256' -> the submitted digest is SHA-256(utf8(synoi.canonical_bundle)). digest_sha256 === that hash, and it does NOT equal merkle_root.",
+    "unknown_rule": "ots_proof present with no digest_kind -> report 'unknown'. Do NOT backfill, do NOT default to merkle_root, and do NOT report a recomputation mismatch as tampering.",
+    "no_timestamp_rule": "ots_proof absent -> digest_kind is null, meaning nothing was timestamped. This is distinct from 'unknown'.",
+    "verdicts": "recomputable | not-recomputable-unknown-preimage | no-timestamp"
+  },
+  "cases": [
+    {
+      "name": "countersigned_bundle_anchor",
+      "note": "Counter-signing succeeded, so the OTS proof commits to the bundle hash, not to the root. A verifier that assumed merkle_root here would compute a mismatch on an entirely valid proof.",
+      "batch": {
+        "batch_id": "b1",
+        "merkle_root": "3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e",
+        "leaf_count": 3,
+        "ots_proof_present": true,
+        "ots_digest_kind": "countersign_bundle_sha256",
+        "ots_digest_sha256": "69e8db2e638b7a93af87a137424f85c031d00b9b02491158d2eea114b7fb52ff",
+        "synoi_canonical_bundle": "{\"batch_created_at\":1700000000000,\"batch_root\":\"3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e\",\"install_id\":\"install-conformance-1\",\"leaf_count\":3,\"signed_at\":1700000000500,\"status\":\"trusted\",\"v\":1}"
+      },
+      "expected": {
+        "verdict": "recomputable",
+        "recomputed_digest": "69e8db2e638b7a93af87a137424f85c031d00b9b02491158d2eea114b7fb52ff",
+        "digest_equals_merkle_root": false
+      }
+    },
+    {
+      "name": "merkle_root_anchor",
+      "note": "The control plane was unreachable, so the OTS proof commits to the raw Merkle root. Same batch shape as above; only the kind and the digest differ.",
+      "batch": {
+        "batch_id": "b2",
+        "merkle_root": "3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e",
+        "leaf_count": 3,
+        "ots_proof_present": true,
+        "ots_digest_kind": "merkle_root",
+        "ots_digest_sha256": "3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e",
+        "synoi_canonical_bundle": null
+      },
+      "expected": {
+        "verdict": "recomputable",
+        "recomputed_digest": "3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e",
+        "digest_equals_merkle_root": true
+      }
+    },
+    {
+      "name": "legacy_unknown_preimage",
+      "note": "A batch anchored before the discriminator existed. The OTS proof is real; which preimage it covers was never recorded. The honest verdict is not-recomputable, and a mismatch against either candidate is NOT a tampering finding.",
+      "batch": {
+        "batch_id": "b3",
+        "merkle_root": "3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e",
+        "leaf_count": 3,
+        "ots_proof_present": true,
+        "ots_digest_kind": null,
+        "ots_digest_sha256": null,
+        "synoi_canonical_bundle": "{\"batch_created_at\":1700000000000,\"batch_root\":\"3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e\",\"install_id\":\"install-conformance-1\",\"leaf_count\":3,\"signed_at\":1700000000500,\"status\":\"trusted\",\"v\":1}"
+      },
+      "expected": {
+        "verdict": "not-recomputable-unknown-preimage",
+        "recomputed_digest": null,
+        "digest_equals_merkle_root": null
+      }
+    },
+    {
+      "name": "no_timestamp",
+      "note": "The batch was recorded but never submitted to a calendar. Distinct from unknown: there is nothing to recompute because nothing was timestamped.",
+      "batch": {
+        "batch_id": "b4",
+        "merkle_root": "3d1f8d8d4e1f9d63b9c8f2c0f8f2a6f0f0b4a1d2c3e4f5061728394a5b6c7d8e",
+        "leaf_count": 3,
+        "ots_proof_present": false,
+        "ots_digest_kind": null,
+        "ots_digest_sha256": null,
+        "synoi_canonical_bundle": null
+      },
+      "expected": {
+        "verdict": "no-timestamp",
+        "recomputed_digest": null,
+        "digest_equals_merkle_root": null
+      }
+    }
+  ]
+}
