@@ -32,7 +32,15 @@ interface SraidImpl {
     grant?:             Record<string, unknown>
     grant_ed25519_pub?: Uint8Array
     grant_ml_dsa_pub?:  Uint8Array
-  }): { authorized: boolean; reasons: string[] }
+    // Wall-clock instant the expiry check is evaluated at. Optional by design:
+    // omitting it means NO clock check ran, which the result reports through
+    // expiry_checked_at_now rather than by silently passing.
+    now_ms?:            number
+  }): {
+    authorized: boolean; reasons: string[]
+    expiry_checked_at_now?: boolean
+    not_expired_at_now?:    boolean
+  }
   // L3 lineage. Optional so older impls still load; a lineage vector against
   // an impl that lacks these is reported as a clear failure.
   lineageLinks?(cdro: Record<string, unknown>): Array<{ rel: string; oid: string }>
@@ -63,7 +71,12 @@ interface SraidImpl {
     linkPubkeys: Array<{ ed25519: Uint8Array; ml_dsa: Uint8Array }>
     rootPubkeys: { ed25519: Uint8Array; ml_dsa: Uint8Array }
     action?:     string
-  }): { authorized: boolean; reasons: string[] }
+    now_ms?:     number
+  }): {
+    authorized: boolean; reasons: string[]
+    expiry_checked_at_now?: boolean
+    not_expired_at_now?:    boolean
+  }
 }
 
 export async function runSraidVectors(implPath: string, vectors: Vector[]): Promise<VectorResult[]> {
@@ -280,6 +293,7 @@ function runAuthorityVector(impl: SraidImpl, v: Vector): VectorResult {
       grant?:             Record<string, unknown>
       grant_ed25519_pub?: Uint8Array
       grant_ml_dsa_pub?:  Uint8Array
+      now_ms?:            number
     } = { object: v['object'] as Record<string, unknown> }
     if (v['action'] !== undefined) args.action = String(v['action'])
     if (v['grant'] !== undefined) args.grant = v['grant'] as Record<string, unknown>
@@ -289,6 +303,7 @@ function runAuthorityVector(impl: SraidImpl, v: Vector): VectorResult {
     if (v['grant_ml_dsa_pub_b64'] !== undefined) {
       args.grant_ml_dsa_pub = b64ToBytes(String(v['grant_ml_dsa_pub_b64']))
     }
+    if (v['now_ms'] !== undefined) args.now_ms = Number(v['now_ms'])
     const result = impl.verifyAuthority(args)
     const expected = v['expected_authorized'] === true
     if (result.authorized !== expected) {
@@ -297,6 +312,8 @@ function runAuthorityVector(impl: SraidImpl, v: Vector): VectorResult {
         reason: `expected authorized=${expected}, got ${result.authorized} (${result.reasons.join(',')})`,
       }
     }
+    const live = livenessMismatch(v, result)
+    if (live) return { vector_name: v.name, passed: false, reason: live }
     return { vector_name: v.name, passed: true }
   } catch (err) {
     return { vector_name: v.name, passed: false, reason: `threw: ${(err as Error).message}` }
@@ -633,6 +650,7 @@ function runChainVector(impl: SraidImpl, v: Vector): VectorResult {
       leaf, ancestors, linkPubkeys, rootPubkeys,
     }
     if (v['action'] !== undefined) args.action = String(v['action'])
+    if (v['now_ms'] !== undefined) args.now_ms = Number(v['now_ms'])
 
     const result = impl.verifyDelegationChain(args)
     const expected = v['expected_authorized'] === true
@@ -653,10 +671,35 @@ function runChainVector(impl: SraidImpl, v: Vector): VectorResult {
         }
       }
     }
+    const live = livenessMismatch(v, result)
+    if (live) return { vector_name: v.name, passed: false, reason: live }
     return { vector_name: v.name, passed: true }
   } catch (err) {
     return { vector_name: v.name, passed: false, reason: `threw: ${(err as Error).message}` }
   }
+}
+
+// Shared liveness assertions. A vector that only asserts `expected_authorized`
+// can pass for the WRONG REASON: an expired grant might be refused by a
+// signature or scope gate while the clock check never ran at all. These let a
+// vector pin that the wall-clock gate actually executed, and what it concluded.
+function livenessMismatch(
+  v: Vector,
+  result: { expiry_checked_at_now?: boolean; not_expired_at_now?: boolean },
+): string | null {
+  if (v['expected_expiry_checked_at_now'] !== undefined) {
+    const want = v['expected_expiry_checked_at_now'] === true
+    if (result.expiry_checked_at_now !== want) {
+      return `expected expiry_checked_at_now=${want}, got ${result.expiry_checked_at_now}`
+    }
+  }
+  if (v['expected_not_expired_at_now'] !== undefined) {
+    const want = v['expected_not_expired_at_now'] === true
+    if (result.not_expired_at_now !== want) {
+      return `expected not_expired_at_now=${want}, got ${result.not_expired_at_now}`
+    }
+  }
+  return null
 }
 
 function b64ToBytes(b64: string): Uint8Array {

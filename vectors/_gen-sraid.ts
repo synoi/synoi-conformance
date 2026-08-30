@@ -377,6 +377,53 @@ const authorityVectors = [
     action: 'email.bulk_delete',
     expected_authorized: false,
   },
+  // ── wall-clock liveness (GATE: expiry at now) ──────────────────────────────
+  //
+  // The grant above expires at 1816840000000. Until 2026-08-27 no vector passed
+  // now_ms at all, so verifyAuthority's wall-clock branch and the chain
+  // verifier's GATE 6 were unreachable from the conformance suite: the library
+  // could have regressed to "never expires" and every vector would still pass.
+  //
+  // Each of these asserts the liveness FIELDS, not just `authorized`. Asserting
+  // authorized alone is not enough, because an expired grant can be refused by
+  // a different gate entirely while the clock check never runs.
+  {
+    name: 'liveness: unexpired at now_ms',
+    kind: 'authority',
+    object: authObject,
+    action: 'email.bulk_delete',
+    grant: authGrant,
+    grant_ed25519_pub_b64: grantEdPubB64,
+    grant_ml_dsa_pub_b64: grantMlPubB64,
+    now_ms: 1816839999000,               // one second before expiry
+    expected_authorized: true,
+    expected_expiry_checked_at_now: true,
+    expected_not_expired_at_now: true,
+  },
+  {
+    name: 'liveness: expired at now_ms is refused',
+    kind: 'authority',
+    object: authObject,
+    action: 'email.bulk_delete',
+    grant: authGrant,
+    grant_ed25519_pub_b64: grantEdPubB64,
+    grant_ml_dsa_pub_b64: grantMlPubB64,
+    now_ms: 1816840001000,               // one second after expiry
+    expected_authorized: false,
+    expected_expiry_checked_at_now: true,
+    expected_not_expired_at_now: false,
+  },
+  {
+    name: 'liveness: omitting now_ms runs no clock check and claims nothing about the present',
+    kind: 'authority',
+    object: authObject,
+    action: 'email.bulk_delete',
+    grant: authGrant,
+    grant_ed25519_pub_b64: grantEdPubB64,
+    grant_ml_dsa_pub_b64: grantMlPubB64,
+    expected_authorized: true,
+    expected_expiry_checked_at_now: false,
+  },
 ]
 
 writeFileSync(
