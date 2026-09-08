@@ -47,17 +47,18 @@
   },
   "dependencies": {
     "@synoi/gap": "^1.1.0",
-    "@synoi/sraid": "^0.2.0",
+    "@synoi/sraid": "^0.5.0",
     "@synoi/verify": "^0.1.0"
   },
   "devDependencies": {
     "@noble/curves": "^1.9.7",
     "@noble/hashes": "^1.5.0",
     "@noble/post-quantum": "^0.6.1",
-    "@synoi/gap": "file:../../synoi-systems/synoi-gap",
+    "@synoi/gap": "file:../synoi-gap",
+    "@synoi/authority-verify": "file:../synoi-authority-verify",
     "@synoi/oid-resolver": "file:../synoi-oid-resolver",
-    "@synoi/sraid": "file:../../synoi-systems/synoi-sraid",
-    "@synoi/verify": "file:../../synoi-systems/synoi-verify",
+    "@synoi/sraid": "file:../synoi-sraid",
+    "@synoi/verify": "file:../synoi-verify",
     "@types/node": "^20.12.0",
     "tsx": "^4.22.2",
     "typescript": "^5.4.5"

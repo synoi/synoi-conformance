@@ -199,6 +199,62 @@ for (const v of floats) {
   ok(`float-reject[${v.name.slice(0, 44)}]: rejected before hashing`, rejected && v.expected === 'reject')
 }
 
+// ── 4. proto-pollution vectors (the __proto__ OID collision) ─────────────────
+//
+// The defect these pin was reached INDEPENDENTLY by two implementations with
+// no shared code: @synoi/sraid <=0.4.0 and @synoi/gap <=1.2.0. Both derived
+// the projection from PROJECTION_SPEC.md prose - "remove exactly these six
+// fields, keep everything else" - which translates in JavaScript into
+// `core[k] = v`. That invokes the prototype setter for `__proto__`, silently
+// dropping the member, while a canonicalizer walking Object.keys still sees
+// it. Two objects with different content then share one OID, and a binding
+// check comparing canonicalize(contentCore(x)) accepts the polluted one
+// because both sides drop it identically.
+//
+// synoi-gap's oid.ts asserted that "a byte-for-byte divergence from the
+// reference implementation is caught by the shared conformance vectors". No
+// vector covered this shape, so nothing caught it. These are that vector.
+//
+// Inputs are RAW JSON TEXT (`input_json`), not parsed members of this file: a
+// member named `__proto__` does not survive being copied by assignment, so
+// storing the text is what keeps the case intact through any toolchain and any
+// language binding.
+
+interface ProtoVector {
+  name: string
+  kind: string
+  input_json?: string
+  input?: unknown
+  expected?: string
+}
+
+const protos = JSON.parse(
+  readFileSync(join(vecDir, 'proto-pollution.json'), 'utf8'),
+) as ProtoVector[]
+
+for (const v of protos) {
+  if (v.kind === 'canonicalize_reject') {
+    const input = JSON.parse(v.input_json as string)
+    let rejected = false
+    try {
+      cdroOid(input)
+    } catch {
+      rejected = true
+    }
+    ok(`proto[${v.name.replace("adr019 proto-pollution: ", "").slice(0, 48)}]: rejected before hashing`, rejected && v.expected === 'reject')
+  } else if (v.kind === 'canonicalize') {
+    // Negative controls: constructor / prototype are ORDINARY content keys and
+    // must still be hashed. Guards against an over-broad fix.
+    let out: string | null = null
+    try {
+      out = canonicalize(v.input)
+    } catch {
+      out = null
+    }
+    ok(`proto[${v.name.replace("adr019 proto-pollution: ", "").slice(0, 48)}]: canonicalized, not rejected`, out === v.expected)
+  }
+}
+
 // ── Done ─────────────────────────────────────────────────────────────────────
 
 process.stdout.write(`\n${passed} passed, ${failed} failed\n`)

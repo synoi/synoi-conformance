@@ -1,0 +1,38 @@
+[
+  {
+    "name": "adr019 proto-pollution: own __proto__ on a CDRO envelope is rejected",
+    "kind": "canonicalize_reject",
+    "input_description": "{...,\"__proto__\":{\"escalated\":true}}",
+    "input_json": "{\"type\":\"gap:capability_grant\",\"sraid_version\":\"2.0\",\"tenant_id\":\"t-home\",\"created_at_ms\":1767225600000,\"created_by\":\"actor:skill:demo\",\"body\":{\"capability\":\"door.unlock\"},\"__proto__\":{\"escalated\":true}}",
+    "expected": "reject",
+    "reason": "proto-member-forbidden"
+  },
+  {
+    "name": "adr019 proto-pollution: own __proto__ alone is rejected",
+    "kind": "canonicalize_reject",
+    "input_description": "{\"__proto__\":{\"x\":1}}",
+    "input_json": "{\"__proto__\":{\"x\":1}}",
+    "expected": "reject",
+    "reason": "proto-member-forbidden"
+  },
+  {
+    "name": "adr019 proto-pollution: own __proto__ with a string value is rejected",
+    "kind": "canonicalize_reject",
+    "input_description": "{\"a\":1,\"__proto__\":\"x\"}",
+    "input_json": "{\"a\":1,\"__proto__\":\"x\"}",
+    "expected": "reject",
+    "reason": "proto-member-forbidden"
+  },
+  {
+    "name": "adr019 proto-pollution: NEGATIVE CONTROL - constructor is an ordinary key and is canonicalized",
+    "kind": "canonicalize",
+    "input": { "a": 1, "constructor": { "harmless": true } },
+    "expected": "{\"a\":1,\"constructor\":{\"harmless\":true}}"
+  },
+  {
+    "name": "adr019 proto-pollution: NEGATIVE CONTROL - prototype is an ordinary key and is canonicalized",
+    "kind": "canonicalize",
+    "input": { "a": 1, "prototype": { "harmless": true } },
+    "expected": "{\"a\":1,\"prototype\":{\"harmless\":true}}"
+  }
+]

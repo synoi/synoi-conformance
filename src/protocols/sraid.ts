@@ -156,12 +156,28 @@ function runCanonicalizeRejectVector(impl: SraidImpl, v: Vector): VectorResult {
   // The vector carries a `js_eval` string that encodes the actual value
   // (e.g. "NaN", "Infinity") which cannot be expressed in JSON.
   // The runner evaluates it safely with a fixed allowlist.
+  // `input_json` carries the value as RAW JSON TEXT, parsed here by the runner.
+  // Needed for members that do not survive being expressed as an ordinary
+  // parsed member of the vector file itself - `__proto__` above all, which
+  // JSON.parse creates as an OWN property but property assignment silently
+  // turns into a prototype write. Storing the text keeps the case intact
+  // through any toolchain and keeps it language-agnostic. Same motivation as
+  // `js_eval`, which exists for values JSON cannot express at all (NaN,
+  // Infinity).
   const jsEval = String(v['js_eval'] ?? '')
   let actualInput: unknown
-  try {
-    actualInput = evalJsLiteral(jsEval)
-  } catch (_e) {
-    return { vector_name: v.name, passed: false, reason: `cannot evaluate js_eval: ${jsEval}` }
+  if (typeof v['input_json'] === 'string') {
+    try {
+      actualInput = JSON.parse(v['input_json'] as string)
+    } catch (_e) {
+      return { vector_name: v.name, passed: false, reason: `cannot parse input_json` }
+    }
+  } else {
+    try {
+      actualInput = evalJsLiteral(jsEval)
+    } catch (_e) {
+      return { vector_name: v.name, passed: false, reason: `cannot evaluate js_eval: ${jsEval}` }
+    }
   }
   let threw = false
   try { impl.canonicalize(actualInput) } catch (_e) { threw = true }

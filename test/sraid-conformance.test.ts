@@ -30,19 +30,36 @@ async function main(): Promise<void> {
   // resolved upward (e.g. when this suite runs from a git worktree, where
   // node_modules lives in the primary checkout).
   const sraidIndexUrl = await import.meta.resolve('@synoi/sraid')
+  // Authority verification left @synoi/sraid in 0.5.0 for @synoi/authority-verify:
+  // it is authorization policy, not object identity, and the sraid entry claimed
+  // "no governance" while exporting it. The L4 authority and K2 delegation
+  // vectors are unchanged and still normative — they now exercise the package
+  // that actually implements them. Resolved OPTIONALLY: when that package is
+  // absent those vectors report not-executable (the suite's existing
+  // graceful-skip path) instead of failing, which is the honest signal for
+  // "this implementation does not offer L4 authority".
+  let authorityUrl: string | null = null
+  try {
+    authorityUrl = await import.meta.resolve('@synoi/authority-verify')
+  } catch {
+    authorityUrl = null
+  }
   writeFileSync(impl,
     `import * as m from ${JSON.stringify(sraidIndexUrl)}\n` +
+    (authorityUrl
+      ? `import * as a from ${JSON.stringify(authorityUrl)}\n`
+      : `const a = {}\n`) +
     `export const canonicalize    = m.canonicalize\n` +
     `export const oidOf           = m.oidOf\n` +
     `export const verifySignature = m.verifySignature\n` +
     `export const verifyAttestation = m.verifyAttestation\n` +
-    `export const verifyAuthority = m.verifyAuthority\n` +
+    `export const verifyAuthority = a.verifyAuthority\n` +
     `export const lineageLinks    = m.lineageLinks\n` +
     `export const latestWins      = m.latestWins\n` +
     `export const sensitivityCarryForward = m.sensitivityCarryForward\n` +
     `export const cdroOid         = m.cdroOid\n` +
     `export const cdroContentCore = m.cdroContentCore\n` +
-    `export const verifyDelegationChain = m.verifyDelegationChain\n` +
+    `export const verifyDelegationChain = a.verifyDelegationChain\n` +
     // K1 Receipt v2: @synoi/sraid does not ship verifyReceiptV2 - it ships the
     // L0 primitives (cdroContentCore, canonicalize, verifyAttestation) the
     // verifier composes. Define it here from those primitives. This is the same
