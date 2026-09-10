@@ -1,7 +1,7 @@
 {
   "note": "R1 was emitted by a real Rust binary, not simulated in TypeScript.",
   "binary": "emit-governed-action-fixture (synoi-gateway/runtime/b1-harness)",
-  "invocation": "E:\\client\\synoi\\synoi-gateway\\runtime\\b1-harness\\target\\debug\\emit-governed-action-fixture.exe",
+  "invocation": "E:\\client\\synoi-systems\\synoi-gateway\\runtime\\b1-harness\\target\\debug\\emit-governed-action-fixture.exe",
   "fixture_tag": "PARTIAL-against-test-keys",
   "fixture_subject": "governed-action.allowed",
   "fixture_action_kind": "render-panel",

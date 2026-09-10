@@ -46,8 +46,20 @@ const here = dirname(fileURLToPath(import.meta.url))
 const outDir = join(here, '..', 'out')
 mkdirSync(outDir, { recursive: true })
 
+// Resolved RELATIVE to this file, not as an absolute path.
+//
+// This was hardcoded to E:\client\synoi\synoi-gateway\... — the tree layout
+// from before the 2026-08-06 migration into synoi-systems. After the move the
+// binary was still present, but at a different absolute path, so existsSync
+// missed it, the script fell through to `cargo build`, and the demo failed on
+// any machine without a Rust toolchain. The symptom that surfaced first was a
+// stale `invocation` field in out/runtime-a-provenance.json; hand-editing that
+// output would have corrected the record while leaving the cause in place.
+//
+// synoi-gateway is a sibling of synoi-conformance, so four levels up from
+// runtime-a-rust/ is the tree root. Survives the tree being relocated again.
 const B1_HARNESS_DIR = join(
-  'E:', 'client', 'synoi', 'synoi-gateway', 'runtime', 'b1-harness',
+  here, '..', '..', '..', '..', 'synoi-gateway', 'runtime', 'b1-harness',
 )
 const EXE = join(B1_HARNESS_DIR, 'target', 'debug', 'emit-governed-action-fixture.exe')
 

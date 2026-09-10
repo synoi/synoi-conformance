@@ -1,7 +1,7 @@
 === fabric-crossenv: cross-language, cross-implementation chain verify ===
 
 R1 (Rust, Runtime A)   oid = sha256:4cd6c7591a4625585656de0302278ee6603752164ef330ca88902cb34a86c137  subject=governed-action.allowed
-R2 (TypeScript, Runtime B) oid = sha256:9275bbc48d138ece3e312d75c7537a24473e094863ea148847948e8e51f173a5
+R2 (TypeScript, Runtime B) oid = sha256:e4d4fe8900793741bfd5bfc46cf805789ee00b622d65b77acdaed0f42b7cda7c
 R2.prev                    = sha256:4cd6c7591a4625585656de0302278ee6603752164ef330ca88902cb34a86c137
 
 PASS  bundle-valid
